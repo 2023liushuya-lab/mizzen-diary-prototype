@@ -83,16 +83,21 @@ function LimitRow({
           </option>
         </Select>
         {selection === "custom" && value.kind === "limited" && (
-          <Input
-            className="h-8 text-xs"
-            aria-label={label + " " + t("times")}
-            type="number"
-            min={daily ? 2 : 1}
-            value={value.count}
-            onChange={(e) =>
-              onChange({ kind: "limited", count: Number(e.target.value) })
-            }
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              className="h-8 flex-1 text-xs tabular-nums"
+              aria-label={label + " " + t("times")}
+              type="number"
+              min={daily ? 2 : 1}
+              value={value.count}
+              onChange={(e) =>
+                onChange({ kind: "limited", count: Number(e.target.value) })
+              }
+            />
+            <span className="shrink-0 text-xs text-muted-foreground">
+              {t("times")}
+            </span>
+          </div>
         )}
       </div>
     </div>
@@ -103,8 +108,12 @@ export function OutlinePage() {
   const study = useDiaryStore((s) => s.study);
   const update = useDiaryStore((s) => s.updateConfig);
   const updateBrief = useDiaryStore((s) => s.updateBrief);
+  const updateExternalTitle = useDiaryStore((s) => s.updateExternalTitle);
   const save = useDiaryStore((s) => s.save);
-  const [panel, setPanel] = useState<"settings" | "outline">("settings");
+  const [panel, setPanel] = useState<"chat" | "settings" | "outline">(
+    "settings",
+  );
+  const [chatDraft, setChatDraft] = useState("");
   const c = study.config;
   return (
     <div className="flex min-h-[calc(100dvh-76px)]">
@@ -112,8 +121,9 @@ export function OutlinePage() {
         <Button
           variant="ghost"
           size="icon"
+          className={panel === "chat" ? "bg-indigo-100 text-primary" : ""}
           title={t("chat")}
-          onClick={() => setPanel("outline")}
+          onClick={() => setPanel("chat")}
         >
           <MessageSquare />
         </Button>
@@ -140,7 +150,13 @@ export function OutlinePage() {
         <aside className="border-r border-border bg-card p-6 xl:p-8">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-lg font-semibold">
-              {t(panel === "settings" ? "settings" : "outline")}
+              {t(
+                panel === "settings"
+                  ? "settings"
+                  : panel === "outline"
+                    ? "outline"
+                    : "chat",
+              )}
             </h2>
             <div className="flex lg:hidden">
               <Button
@@ -154,16 +170,50 @@ export function OutlinePage() {
               </Button>
             </div>
           </div>
-          {panel === "outline" ? (
-            <div className="space-y-3">
+          {panel === "chat" ? (
+            <div className="flex h-[calc(100%-3.5rem)] flex-col justify-between gap-4">
+              <div className="rounded-xl border border-border bg-surface p-4 text-sm leading-6 text-muted-foreground">
+                {t("aiChatGuideHint")}
+              </div>
+              <form
+                className="space-y-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!chatDraft.trim()) return;
+                  setChatDraft("");
+                  save();
+                }}
+              >
+                <Input
+                  value={chatDraft}
+                  onChange={(e) => setChatDraft(e.target.value)}
+                  placeholder={t("aiChatInputPlaceholder")}
+                  aria-label={t("chat")}
+                />
+                <p className="text-xs text-placeholder">{t("aiCaution")}</p>
+              </form>
+            </div>
+          ) : panel === "outline" ? (
+            <div className="space-y-2">
               {study.questions.map((q) => (
                 <button
                   key={q.id}
-                  className="flex w-full gap-3 rounded-md px-3 py-3 text-left hover:bg-surface"
+                  className="flex w-full items-start gap-3 rounded-lg border border-transparent px-3 py-3 text-left transition-colors hover:border-border hover:bg-surface"
                   onClick={() => document.getElementById(q.id)?.focus()}
                 >
-                  <span className="text-primary">{q.id}</span>
-                  {q.title}
+                  <span className="mt-0.5 rounded bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-primary">
+                    {q.id}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-foreground">
+                      {q.title}
+                    </span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      {q.rule.kind === "always"
+                        ? t("everyTime")
+                        : `${t(q.rule.kind)} ${q.rule.count}`}
+                    </span>
+                  </span>
                 </button>
               ))}
             </div>
@@ -174,8 +224,8 @@ export function OutlinePage() {
                   {t("externalTitle")}
                 </label>
                 <Input
-                  value={t("externalName")}
-                  readOnly
+                  value={study.externalTitle ?? t("externalName")}
+                  onChange={(e) => updateExternalTitle(e.target.value)}
                   aria-label={t("externalTitle")}
                 />
               </div>
@@ -275,16 +325,21 @@ export function OutlinePage() {
                       <option value="custom">{t("customGap")}</option>
                     </Select>
                     {c.minInterval !== 0 && (
-                      <Input
-                        className="mt-2 h-8 text-xs"
-                        type="number"
-                        min={1}
-                        aria-label={t("minGap") + " " + t("hours")}
-                        value={c.minInterval}
-                        onChange={(e) =>
-                          update({ minInterval: Number(e.target.value) })
-                        }
-                      />
+                      <div className="mt-2 flex items-center gap-2">
+                        <Input
+                          className="h-8 flex-1 text-xs tabular-nums"
+                          type="number"
+                          min={1}
+                          aria-label={t("minGap") + " " + t("hours")}
+                          value={c.minInterval}
+                          onChange={(e) =>
+                            update({ minInterval: Number(e.target.value) })
+                          }
+                        />
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {t("hours")}
+                        </span>
+                      </div>
                     )}
                   </div>
                 </div>

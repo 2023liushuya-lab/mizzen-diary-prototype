@@ -60,6 +60,7 @@ export type Modal =
   | null;
 export interface Study {
   title: string;
+  externalTitle?: string;
   brief: Brief;
   config: DiaryConfig;
   questions: Question[];

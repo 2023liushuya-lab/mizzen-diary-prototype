@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Bell,
   Download,
@@ -7,6 +7,7 @@ import {
   Sparkles,
   Radio,
   FileText,
+  ChevronsLeftRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
@@ -29,12 +30,30 @@ export function RecordsPage() {
   const [live, setLive] = useState(false);
   const [status, setStatus] = useState<ParticipantResponseStatus>("all");
   const { groups, filtered } = useParticipantRecords(status);
-  const questions = initialStudy.questions;
+  const storeQuestions = useDiaryStore((s) => s.study.questions);
+  const questions = storeQuestions.length
+    ? storeQuestions
+    : initialStudy.questions;
   const [collapsed, setCollapsed] = useState<number[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const orders = Array.from(
     { length: Math.max(4, ...records.map((r) => r.order)) },
     (_, i) => i + 1,
   );
+  const allCollapsed = orders.every((n) => collapsed.includes(n));
+  const jumpToOrder = (targetOrder: number) => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const header = container.querySelector<HTMLElement>(
+      `th[data-session-order="${targetOrder}"]`,
+    );
+    if (!header) return;
+    const stickyOffset = 270;
+    container.scrollTo({
+      left: Math.max(0, header.offsetLeft - stickyOffset),
+      behavior: "smooth",
+    });
+  };
   return (
     <div className="w-full bg-card">
       <div className="flex h-12 items-stretch justify-center gap-2 border-b border-border">
@@ -161,8 +180,36 @@ export function RecordsPage() {
                 {t("clear")}
               </Button>
             )}
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              <div className="hidden items-center gap-1 rounded-lg border border-border bg-surface/60 p-1 text-xs sm:flex">
+                <span className="px-2 text-muted-foreground">
+                  {t("jumpToSession")}
+                </span>
+                {orders.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    className="rounded-md px-2 py-1 font-medium text-gray-600 transition-colors hover:bg-card hover:text-primary"
+                    onClick={() => jumpToOrder(n)}
+                  >
+                    {t("order", { n })}
+                  </button>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCollapsed(allCollapsed ? [] : [...orders])}
+              >
+                <ChevronsLeftRight className="size-3.5" />
+                {t(
+                  allCollapsed ? "expandAllQuestions" : "collapseAllQuestions",
+                )}
+              </Button>
+            </div>
           </div>
           <div
+            ref={scrollRef}
             className="overflow-x-auto rounded-lg border border-border bg-card thin-scroll"
             data-testid="session-table-scroll"
           >
@@ -215,51 +262,63 @@ export function RecordsPage() {
                       className={cn(
                         "border-r border-border px-4 py-3 font-medium whitespace-nowrap",
                         i === 0 && "sticky left-0 z-10 bg-gray-50",
-                        i === 1 && "sticky left-[170px] z-10 bg-gray-50",
+                        i === 1 &&
+                          "sticky left-[170px] z-10 bg-gray-50 shadow-[2px_0_5px_-2px_rgba(15,23,42,0.08)]",
                       )}
                     >
                       {t(k)}
                     </th>
                   ))}
-                  {orders.map((n) => (
-                    <th
-                      key={n}
-                      colSpan={
-                        1 + (collapsed.includes(n) ? 0 : questions.length)
-                      }
-                      scope="colgroup"
-                      className="border-l border-border px-4 py-2.5 font-medium text-gray-700"
-                      data-testid="session-column"
-                    >
-                      <button
-                        className="flex items-center gap-2 rounded px-1 py-0.5 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-ring"
-                        aria-expanded={!collapsed.includes(n)}
-                        aria-label={`${t(collapsed.includes(n) ? "expandSession" : "collapseSession")} ${t("order", { n })}`}
-                        onClick={() =>
-                          setCollapsed((prev) =>
-                            prev.includes(n)
-                              ? prev.filter((x) => x !== n)
-                              : [...prev, n],
-                          )
+                  {orders.map((n) => {
+                    const sessionReplyCount = filtered.filter((g) =>
+                      g.replies.some((r) => r.order === n),
+                    ).length;
+                    return (
+                      <th
+                        key={n}
+                        colSpan={
+                          1 + (collapsed.includes(n) ? 0 : questions.length)
                         }
+                        scope="colgroup"
+                        className="border-l-2 border-indigo-100 bg-surface/80 px-4 py-2.5 font-medium text-foreground dark:border-indigo-900/50"
+                        data-testid="session-column"
+                        data-session-order={n}
                       >
-                        <span
-                          aria-hidden="true"
-                          className="text-base leading-none text-muted-foreground"
-                        >
-                          {collapsed.includes(n) ? "+" : "−"}
-                        </span>
-                        {t("order", { n })}
-                      </button>
-                    </th>
-                  ))}
+                        <div className="flex items-center justify-between gap-2">
+                          <button
+                            className="flex items-center gap-2 rounded px-1.5 py-0.5 hover:bg-card focus-visible:ring-2 focus-visible:ring-ring"
+                            aria-expanded={!collapsed.includes(n)}
+                            aria-label={`${t(collapsed.includes(n) ? "expandSession" : "collapseSession")} ${t("order", { n })}`}
+                            onClick={() =>
+                              setCollapsed((prev) =>
+                                prev.includes(n)
+                                  ? prev.filter((x) => x !== n)
+                                  : [...prev, n],
+                              )
+                            }
+                          >
+                            <span
+                              aria-hidden="true"
+                              className="inline-flex size-4 items-center justify-center rounded bg-card text-xs leading-none text-primary shadow-2xs"
+                            >
+                              {collapsed.includes(n) ? "+" : "−"}
+                            </span>
+                            <span>{t("order", { n })}</span>
+                          </button>
+                          <span className="rounded-full bg-card/90 px-2 py-0.5 text-[11px] font-normal tabular-nums text-muted-foreground">
+                            {sessionReplyCount}/{filtered.length}
+                          </span>
+                        </div>
+                      </th>
+                    );
+                  })}
                 </tr>
                 <tr className="border-t border-border">
                   {orders.flatMap((n) => [
                     <th
                       key={`${n}-summary`}
                       scope="col"
-                      className="border-l border-border px-4 py-3 font-medium"
+                      className="border-l-2 border-indigo-100 px-4 py-3 font-medium dark:border-indigo-900/50"
                     >
                       {t("sessionSummary")}
                     </th>,
@@ -292,7 +351,7 @@ export function RecordsPage() {
                       {g.participant.id} · {g.participant.name}
                     </td>
                     <td
-                      className="sticky left-[170px] z-10 border-r border-border bg-card px-4 py-4 align-top tabular-nums group-hover:bg-gray-50"
+                      className="sticky left-[170px] z-10 border-r border-border bg-card px-4 py-4 align-top tabular-nums shadow-[2px_0_5px_-2px_rgba(15,23,42,0.08)] group-hover:bg-gray-50"
                       data-testid="response-count"
                     >
                       {t("responseTimes", { n: g.replies.length })}
@@ -327,6 +386,8 @@ export function RecordsPage() {
                     </td>
                     {orders.flatMap((n) => {
                       const r = g.replies.find((reply) => reply.order === n);
+                      const summaryCellClass =
+                        "border-l-2 border-indigo-100 px-4 py-3 align-top group-hover:bg-gray-50 dark:border-indigo-900/50";
                       const cellClass =
                         "border-l border-border px-4 py-3 align-top group-hover:bg-gray-50";
                       return [
@@ -334,7 +395,7 @@ export function RecordsPage() {
                           key={`${n}-summary`}
                           data-testid="session-cell"
                           data-order={n}
-                          className={cellClass}
+                          className={summaryCellClass}
                         >
                           {r ? (
                             <button

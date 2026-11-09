@@ -1,6 +1,7 @@
 import type { DiaryRecord, Study } from "@/types/diary";
 export const initialStudy: Study = {
   title: "AI 记账 App 连续使用研究",
+  externalTitle: "一起记录你的记账日常",
   brief: {
     audience: "记账 App 新用户",
     days: 14,

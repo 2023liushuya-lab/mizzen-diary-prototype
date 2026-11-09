@@ -2,15 +2,13 @@
 import { useState } from "react";
 import { Download, Search, Sparkles, Radio, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useTranslation } from "@/hooks/use-translation";
 import { useParticipantRecords } from "@/hooks/use-participant-records";
 import { useDiaryStore } from "@/stores/diary-store";
 import { initialStudy, records } from "@/lib/fixtures";
 import { downloadRecords, formatDuration } from "@/lib/diary-rules";
 import type { Key } from "@/i18n/messages";
-import type { ParticipantResponseStatus } from "@/types/diary";
 import { cn } from "@/lib/utils";
 export function RecordsPage() {
   const t = useTranslation();
@@ -20,8 +18,7 @@ export function RecordsPage() {
   const open = useDiaryStore((s) => s.open);
   const notify = useDiaryStore((s) => s.notify);
   const [live, setLive] = useState(false);
-  const [status, setStatus] = useState<ParticipantResponseStatus>("all");
-  const { groups, filtered } = useParticipantRecords(status);
+  const { groups, filtered } = useParticipantRecords("all");
   const storeQuestions = useDiaryStore((s) => s.study.questions);
   const questions = storeQuestions.length
     ? storeQuestions
@@ -127,24 +124,12 @@ export function RecordsPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <Select
-              aria-label={t("responseStatus")}
-              value={status}
-              onChange={(e) =>
-                setStatus(e.target.value as ParticipantResponseStatus)
-              }
-            >
-              <option value="all">{t("allResponseStatuses")}</option>
-              <option value="responded">{t("hasResponses")}</option>
-              <option value="pending">{t("noResponse")}</option>
-            </Select>
-            {(search || status !== "all") && (
+            {search && (
               <Button
                 variant="link"
                 size="sm"
                 onClick={() => {
                   clear();
-                  setStatus("all");
                 }}
               >
                 {t("clear")}
@@ -204,63 +189,52 @@ export function RecordsPage() {
                       className={cn(
                         "border-r border-border px-4 py-3 font-medium whitespace-nowrap",
                         i === 0 && "sticky left-0 z-10 bg-gray-50",
-                        i === 1 &&
-                          "sticky left-[170px] z-10 bg-gray-50 shadow-[2px_0_5px_-2px_rgba(15,23,42,0.08)]",
+                        i === 1 && "sticky left-[170px] z-10 bg-gray-50",
                       )}
                     >
                       {t(k)}
                     </th>
                   ))}
-                  {orders.map((n) => {
-                    const sessionReplyCount = filtered.filter((g) =>
-                      g.replies.some((r) => r.order === n),
-                    ).length;
-                    return (
-                      <th
-                        key={n}
-                        colSpan={
-                          1 + (collapsed.includes(n) ? 0 : questions.length)
+                  {orders.map((n) => (
+                    <th
+                      key={n}
+                      colSpan={
+                        1 + (collapsed.includes(n) ? 0 : questions.length)
+                      }
+                      scope="colgroup"
+                      className="border-l border-border px-4 py-2.5 font-medium text-muted-foreground"
+                      data-testid="session-column"
+                      data-session-order={n}
+                    >
+                      <button
+                        className="flex items-center gap-2 rounded px-1 py-0.5 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                        aria-expanded={!collapsed.includes(n)}
+                        aria-label={`${t(collapsed.includes(n) ? "expandSession" : "collapseSession")} ${t("order", { n })}`}
+                        onClick={() =>
+                          setCollapsed((prev) =>
+                            prev.includes(n)
+                              ? prev.filter((x) => x !== n)
+                              : [...prev, n],
+                          )
                         }
-                        scope="colgroup"
-                        className="border-l-2 border-indigo-100 bg-surface/80 px-4 py-2.5 font-medium text-foreground dark:border-indigo-900/50"
-                        data-testid="session-column"
-                        data-session-order={n}
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <button
-                            className="flex items-center gap-2 rounded px-1.5 py-0.5 hover:bg-card focus-visible:ring-2 focus-visible:ring-ring"
-                            aria-expanded={!collapsed.includes(n)}
-                            aria-label={`${t(collapsed.includes(n) ? "expandSession" : "collapseSession")} ${t("order", { n })}`}
-                            onClick={() =>
-                              setCollapsed((prev) =>
-                                prev.includes(n)
-                                  ? prev.filter((x) => x !== n)
-                                  : [...prev, n],
-                              )
-                            }
-                          >
-                            <span
-                              aria-hidden="true"
-                              className="inline-flex size-4 items-center justify-center rounded bg-card text-xs leading-none text-primary shadow-2xs"
-                            >
-                              {collapsed.includes(n) ? "+" : "−"}
-                            </span>
-                            <span>{t("order", { n })}</span>
-                          </button>
-                          <span className="rounded-full bg-card/90 px-2 py-0.5 text-[11px] font-normal tabular-nums text-muted-foreground">
-                            {sessionReplyCount}/{filtered.length}
-                          </span>
-                        </div>
-                      </th>
-                    );
-                  })}
+                        <span
+                          aria-hidden="true"
+                          className="text-sm leading-none"
+                        >
+                          {collapsed.includes(n) ? "+" : "−"}
+                        </span>
+                        <span>{t("order", { n })}</span>
+                      </button>
+                    </th>
+                  ))}
                 </tr>
                 <tr className="border-t border-border">
                   {orders.flatMap((n) => [
                     <th
                       key={`${n}-summary`}
                       scope="col"
-                      className="border-l-2 border-indigo-100 px-4 py-3 font-medium dark:border-indigo-900/50"
+                      className="border-l border-border px-4 py-3 font-medium"
                     >
                       {t("sessionSummary")}
                     </th>,
@@ -293,7 +267,7 @@ export function RecordsPage() {
                       {g.participant.id} · {g.participant.name}
                     </td>
                     <td
-                      className="sticky left-[170px] z-10 border-r border-border bg-card px-4 py-4 align-top tabular-nums shadow-[2px_0_5px_-2px_rgba(15,23,42,0.08)] group-hover:bg-gray-50"
+                      className="sticky left-[170px] z-10 border-r border-border bg-card px-4 py-4 align-top tabular-nums group-hover:bg-gray-50"
                       data-testid="response-count"
                     >
                       {t("responseTimes", { n: g.replies.length })}
@@ -309,15 +283,9 @@ export function RecordsPage() {
                         : "—"}
                     </td>
                     <td className="px-4 py-4 align-top">
-                      <Badge
-                        className={
-                          g.replies.length
-                            ? "bg-indigo-50 text-indigo-700"
-                            : "bg-gray-100 text-gray-500"
-                        }
-                      >
+                      <span className="text-xs text-muted-foreground">
                         {t(g.replies.length ? "hasResponses" : "noResponse")}
-                      </Badge>
+                      </span>
                     </td>
                     <td className="px-4 py-4 align-top">
                       <span className="text-xs text-muted-foreground">
@@ -329,7 +297,7 @@ export function RecordsPage() {
                     {orders.flatMap((n) => {
                       const r = g.replies.find((reply) => reply.order === n);
                       const summaryCellClass =
-                        "border-l-2 border-indigo-100 px-4 py-3 align-top group-hover:bg-gray-50 dark:border-indigo-900/50";
+                        "border-l border-border px-4 py-3 align-top group-hover:bg-gray-50";
                       const cellClass =
                         "border-l border-border px-4 py-3 align-top group-hover:bg-gray-50";
                       return [

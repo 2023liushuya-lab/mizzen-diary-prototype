@@ -186,20 +186,30 @@ export function DiaryConfigPanel() {
           </div>
         </details>
       </div>
-      <div className={row}>
-        <span className="text-xs text-muted-foreground">{t("allowLate")}</span>
-        <Toggle
-          label={t("allowLate")}
-          checked={c.allowLate}
-          onChange={(allowLate) => update({ allowLate })}
-        />
-      </div>
       <LimitRow
         label={t("dailyLimit")}
         value={c.daily}
         daily
         onChange={(daily) => update({ daily })}
       />
+      <div className={row} data-testid="makeup-rule">
+        <div className="min-w-0 flex-1">
+          <span className="text-xs text-muted-foreground">
+            {t("allowLate")}
+          </span>
+          <p
+            id="makeup-rule-description"
+            className="mt-1 text-[11px] leading-5 text-placeholder"
+          >
+            {t("makeupHint")}
+          </p>
+        </div>
+        <Toggle
+          label={t("allowLate")}
+          checked={c.allowLate}
+          onChange={(allowLate) => update({ allowLate })}
+        />
+      </div>
       <LimitRow
         label={t("totalLimit")}
         value={c.total}

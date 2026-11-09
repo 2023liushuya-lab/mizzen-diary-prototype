@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUp, ChevronDown, Check, Plus, Upload, X } from "lucide-react";
+import { ArrowUp, ChevronDown, Check, Upload } from "lucide-react";
 import { Textarea } from "@/components/ui/input";
 import { useTranslation } from "@/hooks/use-translation";
 import { useDiaryStore } from "@/stores/diary-store";
@@ -61,27 +61,44 @@ export function CreatePage() {
             className="rounded-[20px] border border-border bg-card shadow-[0_8px_28px_rgba(17,24,39,0.04)]"
             aria-label={t("createBrief")}
           >
-            {diary && (
-              <div className="flex min-h-12 items-center justify-between gap-3 border-b border-border px-5 py-3 text-xs text-muted-foreground">
-                <p>
-                  <strong
-                    data-testid="diary-type-label"
-                    className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 font-medium text-primary dark:bg-indigo-950"
+            <div className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3">
+              <div
+                className="inline-flex items-center gap-1 rounded-lg bg-surface p-1"
+                data-testid="study-type-actions"
+                aria-label={t("researchType")}
+              >
+                {(
+                  [
+                    ["regular", false],
+                    ["diary", true],
+                  ] as const
+                ).map(([key, value]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={diary === value}
+                    data-testid={
+                      diary && value ? "diary-type-label" : undefined
+                    }
+                    className={cn(
+                      "inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+                      diary === value
+                        ? "bg-card text-primary shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                    onClick={() => setDiary(value)}
                   >
-                    {t("diaryStudy")}
-                  </strong>
-                  <span className="mx-2">·</span>
-                  {t("repeatLinkHint")}
-                </p>
-                <button
-                  aria-label={t("removeDiary")}
-                  className="shrink-0 rounded p-1 hover:bg-surface focus-visible:ring-2 focus-visible:ring-ring"
-                  onClick={() => setDiary(false)}
-                >
-                  <X className="size-4" />
-                </button>
+                    {t(key)}
+                  </button>
+                ))}
               </div>
-            )}
+              <span
+                className="text-[11px] text-muted-foreground"
+                data-testid="study-type-hint"
+              >
+                {t(diary ? "repeatLinkHint" : "singleInterviewHint")}
+              </span>
+            </div>
             <div className="px-5 pt-4 pb-3">
               <Textarea
                 aria-label={t("goal")}
@@ -99,11 +116,12 @@ export function CreatePage() {
               />
               <div className="mt-5 flex items-center justify-between gap-3 pb-1">
                 <button
-                  className="flex size-8 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-surface focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex h-8 items-center justify-center gap-1.5 rounded-md px-1 text-xs text-muted-foreground hover:bg-surface hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label={t("importOutline")}
                   onClick={() => open({ kind: "import" })}
                 >
-                  <Plus className="size-4" />
+                  <Upload className="size-3.5" />
+                  {t("importOutline")}
                 </button>
                 <div className="flex items-center gap-2.5">
                   <details
@@ -115,20 +133,16 @@ export function CreatePage() {
                       aria-label={t("mode")}
                       className="flex min-h-8 cursor-pointer list-none items-center gap-1 rounded-full border border-border bg-gray-50 px-3.5 text-xs dark:bg-gray-800 [&::-webkit-details-marker]:hidden"
                     >
-                      {t("interviewMode")}{" "}
                       <strong className="font-semibold">
                         {t(brief.mode === "standard" ? "standard" : "explore")}
                       </strong>
                       <ChevronDown className="size-3 text-placeholder transition-transform group-open:rotate-180" />
                     </summary>
                     <div
-                      className="absolute top-full right-0 z-30 mt-[92px] w-[250px] rounded-xl border border-border bg-card p-2 shadow-[0_8px_24px_rgba(17,24,39,0.06)]"
+                      className="absolute top-full right-0 z-30 mt-2 w-[250px] rounded-xl border border-border bg-card p-2 shadow-[0_8px_24px_rgba(17,24,39,0.06)]"
                       role="menu"
                       aria-label={t("mode")}
                     >
-                      <p className="px-2 py-1 text-[11px] text-placeholder">
-                        {t("selectInterviewMode")}
-                      </p>
                       {(["standard", "explore"] as const).map((mode) => (
                         <button
                           key={mode}
@@ -189,41 +203,6 @@ export function CreatePage() {
               </div>
             </div>
           </section>
-          <div
-            className="mt-[22px] flex flex-wrap items-center justify-center gap-3"
-            data-testid="study-type-actions"
-          >
-            {(
-              [
-                ["regular", false],
-                ["diary", true],
-              ] as const
-            ).map(([key, value]) => (
-              <button
-                key={key}
-                aria-pressed={diary === value}
-                className={cn(
-                  "inline-flex h-10 items-center justify-center gap-1.5 rounded-full border px-5 text-[13px] transition-colors",
-                  diary === value
-                    ? "border-primary bg-indigo-50 text-primary dark:bg-indigo-950"
-                    : "border-border bg-card text-muted-foreground hover:bg-surface",
-                )}
-                onClick={() => setDiary(value)}
-              >
-                {diary === value && (
-                  <span className="size-3 rounded-full bg-primary" />
-                )}
-                {t(key)}
-              </button>
-            ))}
-            <button
-              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-border bg-card px-5 text-[13px] text-muted-foreground hover:bg-surface"
-              onClick={() => open({ kind: "import" })}
-            >
-              <Upload className="size-3.5" />
-              {t("importOutline")}
-            </button>
-          </div>
         </div>
       </main>
       <Footer />

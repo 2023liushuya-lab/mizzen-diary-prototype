@@ -1,4 +1,6 @@
 export const zh = {
+  researchType: "研究类型",
+  singleInterviewHint: "每位受访者完成一次访谈",
   optionalDiaryPrompt: "补充你想了解的研究目标（选填）",
   newResearchProject: "新建研究项目",
   launchPrefix: "启动一个",
@@ -115,9 +117,9 @@ export const zh = {
   frequency: "研究频次",
   daily: "每天一次",
   asNeeded: "按需多次",
-  standard: "标准模式",
-  explore: "探索模式 Beta",
-  mode: "访谈模式",
+  standard: "标准访谈",
+  explore: "定性深访",
+  mode: "访谈方式",
   generate: "生成研究大纲",
   aiCaution: "本次对话由 AI 生成，内容可能不准确，请注意核实。",
   regularPlaceholder:
@@ -338,6 +340,8 @@ export const zh = {
 export type Key = keyof typeof zh;
 export const en: Record<Key, string> = {
   ...zh,
+  researchType: "Research type",
+  singleInterviewHint: "One interview per participant",
   optionalDiaryPrompt: "Add a research goal (optional)",
   newResearchProject: "New research project",
   launchPrefix: "Start an ",
@@ -458,8 +462,8 @@ export const en: Record<Key, string> = {
   frequency: "Frequency",
   daily: "Once a day",
   asNeeded: "As needed",
-  standard: "Standard mode",
-  explore: "Exploration Beta",
+  standard: "Standard interview",
+  explore: "Qualitative deep dive",
   mode: "Interview mode",
   generate: "Create study guide",
   aiCaution: "AI-generated content may be inaccurate. Please review it.",

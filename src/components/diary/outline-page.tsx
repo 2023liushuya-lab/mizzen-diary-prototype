@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "@/hooks/use-translation";
 import { useDiaryStore } from "@/stores/diary-store";
+import { cn } from "@/lib/utils";
 import { DiaryConfigPanel } from "./diary-config";
 export function OutlinePage() {
   const t = useTranslation();
@@ -46,8 +47,21 @@ export function OutlinePage() {
           <Settings />
         </Button>
       </nav>
-      <div className="grid min-w-0 flex-1 lg:grid-cols-[minmax(380px,34%)_minmax(0,1fr)]">
-        <aside className="border-r border-border bg-card p-5 xl:p-6">
+      <div
+        className={cn(
+          "grid min-w-0 flex-1",
+          panel !== "settings" &&
+            "lg:grid-cols-[minmax(380px,34%)_minmax(0,1fr)]",
+        )}
+      >
+        <aside
+          className={cn(
+            "bg-card p-5 xl:p-6",
+            panel === "settings"
+              ? "mx-auto w-full max-w-2xl sm:py-10"
+              : "border-r border-border",
+          )}
+        >
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-lg font-semibold">
               {t(
@@ -129,7 +143,7 @@ export function OutlinePage() {
             </div>
           )}
         </aside>
-        <NativeOutline />
+        {panel !== "settings" && <NativeOutline />}
       </div>
     </div>
   );

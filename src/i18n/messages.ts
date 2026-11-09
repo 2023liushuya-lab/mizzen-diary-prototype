@@ -1,4 +1,13 @@
 export const zh = {
+  dailyTimesCompact: "每天 {n} 次",
+  maxTimesCompact: "最多 {n} 次",
+  customCountCompact: "自定义次数",
+  rangeTo: "至",
+  dateDone: "完成",
+  hoursCompact: "{n} 小时",
+  appPushCompact: "App 未作答提醒",
+  reminderCompact: "超 {n}h 未答时提醒",
+
   researchType: "研究类型",
   singleInterviewHint: "每位受访者完成一次访谈",
   optionalDiaryPrompt: "补充你想了解的研究目标（选填）",
@@ -340,6 +349,15 @@ export const zh = {
 export type Key = keyof typeof zh;
 export const en: Record<Key, string> = {
   ...zh,
+  dailyTimesCompact: "{n} per day",
+  maxTimesCompact: "Up to {n}",
+  customCountCompact: "Custom count",
+  rangeTo: "to",
+  dateDone: "Done",
+  hoursCompact: "{n} hours",
+  appPushCompact: "App reminders",
+  reminderCompact: "After {n}h unanswered",
+
   researchType: "Research type",
   singleInterviewHint: "One interview per participant",
   optionalDiaryPrompt: "Add a research goal (optional)",

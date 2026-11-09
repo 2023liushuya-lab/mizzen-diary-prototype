@@ -1,4 +1,4 @@
-import { AnalysisPage } from "@/components/diary/analysis-page";
+import { redirect } from "next/navigation";
 export default function Page() {
-  return <AnalysisPage />;
+  redirect("/study/records");
 }

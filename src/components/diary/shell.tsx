@@ -86,7 +86,6 @@ const tabs: [string, Key][] = [
   ["/study/outline", "create"],
   ["/study/recruit", "recruit"],
   ["/study/records", "records"],
-  ["/study/analysis", "analysis"],
 ];
 export function StudyShell({ children }: { children: ReactNode }) {
   const path = usePathname();

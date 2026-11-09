@@ -1,14 +1,6 @@
 "use client";
-import { useRef, useState } from "react";
-import {
-  Bell,
-  Download,
-  Search,
-  Sparkles,
-  Radio,
-  FileText,
-  ChevronsLeftRight,
-} from "lucide-react";
+import { useState } from "react";
+import { Download, Search, Sparkles, Radio, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -35,25 +27,10 @@ export function RecordsPage() {
     ? storeQuestions
     : initialStudy.questions;
   const [collapsed, setCollapsed] = useState<number[]>([]);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const orders = Array.from(
     { length: Math.max(4, ...records.map((r) => r.order)) },
     (_, i) => i + 1,
   );
-  const allCollapsed = orders.every((n) => collapsed.includes(n));
-  const jumpToOrder = (targetOrder: number) => {
-    const container = scrollRef.current;
-    if (!container) return;
-    const header = container.querySelector<HTMLElement>(
-      `th[data-session-order="${targetOrder}"]`,
-    );
-    if (!header) return;
-    const stickyOffset = 270;
-    container.scrollTo({
-      left: Math.max(0, header.offsetLeft - stickyOffset),
-      behavior: "smooth",
-    });
-  };
   return (
     <div className="w-full bg-card">
       <div className="flex h-12 items-stretch justify-center gap-2 border-b border-border">
@@ -107,13 +84,6 @@ export function RecordsPage() {
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => open({ kind: "remind" })}
-              >
-                <Bell />
-                {t("remind")}
-              </Button>
               <Button
                 variant="outline"
                 onClick={() => open({ kind: "column" })}
@@ -180,36 +150,8 @@ export function RecordsPage() {
                 {t("clear")}
               </Button>
             )}
-            <div className="ml-auto flex flex-wrap items-center gap-2">
-              <div className="hidden items-center gap-1 rounded-lg border border-border bg-surface/60 p-1 text-xs sm:flex">
-                <span className="px-2 text-muted-foreground">
-                  {t("jumpToSession")}
-                </span>
-                {orders.map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    className="rounded-md px-2 py-1 font-medium text-gray-600 transition-colors hover:bg-card hover:text-primary"
-                    onClick={() => jumpToOrder(n)}
-                  >
-                    {t("order", { n })}
-                  </button>
-                ))}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCollapsed(allCollapsed ? [] : [...orders])}
-              >
-                <ChevronsLeftRight className="size-3.5" />
-                {t(
-                  allCollapsed ? "expandAllQuestions" : "collapseAllQuestions",
-                )}
-              </Button>
-            </div>
           </div>
           <div
-            ref={scrollRef}
             className="overflow-x-auto rounded-lg border border-border bg-card thin-scroll"
             data-testid="session-table-scroll"
           >

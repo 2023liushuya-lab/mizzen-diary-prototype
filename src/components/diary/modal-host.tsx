@@ -43,6 +43,10 @@ export function ModalHost() {
     column: "aiColumn",
     record: "viewReply",
   };
+  const participantUrl =
+    typeof window === "undefined"
+      ? "/participant/join"
+      : `${window.location.origin}/participant/join`;
   const record =
     modal.kind === "record" ? records.find((r) => r.id === modal.id) : null;
   return (
@@ -84,14 +88,14 @@ export function ModalHost() {
             <Input
               id="share-link"
               className="flex-1"
-              value="https://test.mizzen.top/interview/diary-demo"
+              value={participantUrl}
               readOnly
             />
             <Button
               variant="outline"
               onClick={() => {
                 navigator.clipboard
-                  ?.writeText("https://test.mizzen.top/interview/diary-demo")
+                  ?.writeText(participantUrl)
                   .catch(() => undefined);
                 notify("linkCopied");
               }}
@@ -100,6 +104,13 @@ export function ModalHost() {
             </Button>
           </div>
           <p className={"mt-4 " + notice}>{t("sampleLink")}</p>
+          <a
+            href="/participant/join"
+            className="mt-3 inline-block text-sm text-primary hover:underline"
+            onClick={close}
+          >
+            {t("participantPreview")}
+          </a>
           {footer(t("viewRecords"), () => {
             close();
             router.push("/study/records");

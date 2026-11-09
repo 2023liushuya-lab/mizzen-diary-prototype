@@ -1,4 +1,5 @@
 export const zh = {
+  participantPreview: "预览受访者端",
   makeupHint: "当日漏答，可在次日 24 小时内补答。",
   dailyTimesCompact: "每天 {n} 次",
   maxTimesCompact: "最多 {n} 次",
@@ -350,6 +351,7 @@ export const zh = {
 export type Key = keyof typeof zh;
 export const en: Record<Key, string> = {
   ...zh,
+  participantPreview: "Participant preview",
   makeupHint: "Missed a daily task? Make it up within the next 24-hour day.",
   dailyTimesCompact: "{n} per day",
   maxTimesCompact: "Up to {n}",

@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { Link as LinkIcon, Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,15 @@ export function RecruitPage() {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-10 px-4 pt-16 pb-12 sm:px-6">
       <section className="space-y-4 rounded-xl bg-gray-100 p-4 dark:bg-gray-800">
-        <h2 className="text-sm font-medium">{t("normalRecruit")}</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-medium">{t("normalRecruit")}</h2>
+          <Link
+            href="/participant/join"
+            className="text-xs text-primary hover:underline"
+          >
+            {t("participantPreview")}
+          </Link>
+        </div>
         <button
           className="flex w-full items-center justify-between rounded-xl bg-card px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-900"
           onClick={() => open({ kind: "share" })}

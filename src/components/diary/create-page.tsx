@@ -1,32 +1,13 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ChevronLeft,
-  ArrowUp,
-  ChevronDown,
-  Check,
-  BookOpen,
-  ChartNoAxesCombined,
-  FileText,
-  Sparkles,
-  Upload,
-  Users,
-  User,
-  Bell,
-  X,
-  Database,
-  Settings,
-  PanelLeftClose,
-  ChevronsUpDown,
-  ExternalLink,
-  FileChartColumn,
-} from "lucide-react";
-import { Input, Select, Textarea } from "@/components/ui/input";
+import { ArrowUp, ChevronDown, Check, Plus, Upload, X } from "lucide-react";
+import { Textarea } from "@/components/ui/input";
 import { useTranslation } from "@/hooks/use-translation";
 import { useDiaryStore } from "@/stores/diary-store";
 import { Brand, Footer } from "./shell";
 import { cn } from "@/lib/utils";
+
 export function CreatePage() {
   const t = useTranslation();
   const router = useRouter();
@@ -37,322 +18,212 @@ export function CreatePage() {
   const notify = useDiaryStore((s) => s.notify);
   const [diary, setDiary] = useState(true);
   const [regular, setRegular] = useState("");
-  const [collapsed, setCollapsed] = useState(false);
+  const [diaryPrompt, setDiaryPrompt] = useState("");
   const modePickerRef = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
-    const onPointerDown = (e: MouseEvent) => {
+    const closeOutside = (event: MouseEvent) => {
       if (
         modePickerRef.current?.open &&
-        !modePickerRef.current.contains(e.target as Node)
-      ) {
+        !modePickerRef.current.contains(event.target as Node)
+      )
         modePickerRef.current.removeAttribute("open");
-      }
     };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && modePickerRef.current?.open) {
-        modePickerRef.current.removeAttribute("open");
-      }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape")
+        modePickerRef.current?.removeAttribute("open");
     };
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("mousedown", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
     return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("mousedown", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
     };
   }, []);
-  const fill =
-    "inline-block h-8 rounded-none border-0 border-b border-indigo-300 bg-indigo-50/35 px-2 text-[14px] font-medium text-primary transition-colors hover:bg-indigo-50/70 focus:ring-0 focus:border-primary focus:bg-indigo-50/80";
   return (
     <>
-      <aside
-        className={cn(
-          "fixed top-0 bottom-7 left-0 hidden flex-col border-r border-border bg-card lg:flex",
-          collapsed ? "w-16" : "w-64",
-        )}
-      >
-        <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <Brand />
-            {!collapsed && (
-              <>
-                <div className="min-w-0">
-                  <strong className="text-sm font-semibold">
-                    {t("workspace")}
-                  </strong>
-                  <p className="text-xs text-muted-foreground">{t("admin")}</p>
-                </div>
-                <ChevronsUpDown className="size-3 text-placeholder" />
-              </>
-            )}
-          </div>
-          <button
-            aria-label={t("workspaceName")}
-            className={cn(
-              "text-muted-foreground",
-              collapsed && "absolute top-20 left-6",
-            )}
-            onClick={() => setCollapsed(!collapsed)}
-          >
-            <PanelLeftClose className="size-4" />
-          </button>
+      <header className="flex h-[52px] items-center justify-between border-b border-border bg-card px-6">
+        <div className="flex items-center gap-3">
+          <Brand />
+          <span className="text-sm font-medium">Mizzen Insight</span>
         </div>
-        {!collapsed && (
-          <p className="flex h-10 items-center border-b border-border px-4 text-[11px] font-semibold text-muted-foreground">
-            MIZZEN DEMO
-          </p>
-        )}
-        <nav className={cn("space-y-1 p-3", collapsed && "mt-12")}>
-          {(
-            [
-              [FileText, "projects"],
-              [Users, "persona"],
-              [ChartNoAxesCombined, "insights"],
-              [User, "account"],
-              [BookOpen, "glossary"],
-              [Database, "knowledge"],
-              [Sparkles, "skills"],
-              [Bell, "notifications"],
-              [Settings, "workspaceSettings"],
-              [FileChartColumn, "reports"],
-            ] as const
-          ).map(([Icon, key], i) => (
-            <div
-              key={key}
-              title={t(key)}
-              className={cn(
-                "flex h-9 items-center gap-3 rounded-xl px-3 text-sm",
-                i === 0
-                  ? "bg-surface text-foreground font-medium"
-                  : "text-gray-600 dark:text-gray-300",
-                i === 9 && "mt-3 rounded-none border-t border-border pt-3",
-              )}
-            >
-              <Icon className="size-[18px] shrink-0" />
-              {!collapsed && (
-                <>
-                  <span>{t(key)}</span>
-                  {i === 2 && (
-                    <ExternalLink className="-ml-2 size-3 text-placeholder" />
-                  )}
-                  {(i === 1 || i === 2) && (
-                    <span className="ml-auto rounded-full bg-sky-100 px-1.5 text-[10px] font-medium text-sky-600">
-                      {i === 1 ? "Demo" : "Beta"}
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
-          ))}
-        </nav>
-        <div className="mt-auto flex h-20 shrink-0 items-center gap-3 border-t border-border px-5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-500">
-            <User className="size-4" />
-          </span>
-          {!collapsed && (
-            <div>
-              <p className="text-xs font-medium">
-                {t("researcher")} · {t("admin")}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {t("workspaceName")}
-              </p>
-            </div>
-          )}
-        </div>
-      </aside>
-      <main
-        className={cn(
-          "mb-7 min-h-[calc(100dvh-28px)] bg-card",
-          collapsed ? "lg:ml-16" : "lg:ml-64",
-        )}
-      >
-        <div className="flex h-16 items-center px-8">
-          <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <ChevronLeft className="size-4" />
-            {t("returnLabel")}
-          </span>
-        </div>
-        <div className="mx-auto w-full max-w-4xl px-4 pt-8 pb-12 lg:px-0 lg:pt-12">
-          <h1 className="mb-8 text-center text-2xl font-semibold leading-8">
-            {t("homeTitle")}
+        <span className="text-xs text-muted-foreground">
+          {t("newResearchProject")}
+        </span>
+      </header>
+      <main className="create-canvas mb-7 min-h-[calc(100dvh-80px)] px-4 pt-12 pb-32 sm:pt-16">
+        <div className="mx-auto w-full max-w-[720px]">
+          <h1 className="mb-8 text-center text-[28px] leading-10 font-semibold tracking-tight">
+            {t("launchPrefix")}
+            <span className="text-primary">{t("depthInterview")}</span>
+            {t("launchSuffix")}
           </h1>
-          <section className="rounded-[20px] border border-border bg-card px-4 py-3 shadow-sm focus-within:ring-2 focus-within:ring-primary/10">
-            <div
-              className={cn(
-                "px-1 pt-1",
-                diary ? "min-h-[148px]" : "min-h-[56px]",
-              )}
-            >
-              {diary ? (
-                <>
-                  <button
-                    className="mb-2 inline-flex items-center gap-2 rounded-md bg-indigo-50 px-2 py-1 text-xs text-indigo-600"
-                    onClick={() => setDiary(false)}
+          <section
+            className="rounded-[20px] border border-border bg-card shadow-[0_8px_28px_rgba(17,24,39,0.04)]"
+            aria-label={t("createBrief")}
+          >
+            {diary && (
+              <div className="flex min-h-12 items-center justify-between gap-3 border-b border-border px-5 py-3 text-xs text-muted-foreground">
+                <p>
+                  <strong
+                    data-testid="diary-type-label"
+                    className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 font-medium text-primary dark:bg-indigo-950"
                   >
                     {t("diaryStudy")}
-                    <X className="size-3" />
-                  </button>
-                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm leading-9">
-                    <span>{t("invite")}</span>
-                    <Input
-                      className={cn(fill, "w-40")}
-                      aria-label={t("audience")}
-                      value={brief.audience}
-                      onChange={(e) => update({ audience: e.target.value })}
-                    />
-                    <span>，{t("within")}</span>
-                    <Input
-                      className={cn(
-                        fill,
-                        "w-14 text-center tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
-                      )}
-                      type="number"
-                      min={1}
-                      max={365}
-                      aria-label={t("studyDays")}
-                      value={brief.days}
-                      onChange={(e) => update({ days: Number(e.target.value) })}
-                    />
-                    <span>{t("days")}</span>
-                    <Select
-                      className={cn(fill, "w-28")}
-                      aria-label={t("frequency")}
-                      value={brief.frequency}
-                      onChange={(e) =>
-                        update({
-                          frequency: e.target.value as "daily" | "unlimited",
-                        })
-                      }
-                    >
-                      <option value="daily">{t("daily")}</option>
-                      <option value="unlimited">{t("asNeeded")}</option>
-                    </Select>
-                    <span>{t("recordExperience")}</span>
-                    <span className="inline-flex max-w-full items-baseline gap-1">
-                      <Input
-                        className={cn(fill, "w-56 max-w-full")}
-                        aria-label={t("goal")}
-                        value={brief.goal}
-                        onChange={(e) => update({ goal: e.target.value })}
-                      />
-                      <span>。</span>
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <Textarea
-                  aria-label={t("goal")}
-                  rows={2}
-                  className="min-h-[80px] resize-none border-0 p-0 focus:ring-0"
-                  placeholder={t("regularPlaceholder")}
-                  value={regular}
-                  onChange={(e) => setRegular(e.target.value)}
-                />
-              )}
-            </div>
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-              <div
-                className="flex flex-wrap items-center gap-2"
-                data-testid="study-type-actions"
-              >
-                {(
-                  [
-                    ["regular", false],
-                    ["diary", true],
-                  ] as const
-                ).map(([key, value]) => (
-                  <button
-                    key={key}
-                    aria-pressed={diary === value}
-                    className={cn(
-                      "inline-flex h-8 items-center justify-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors",
-                      diary === value
-                        ? "border-indigo-200 bg-indigo-50 text-indigo-700"
-                        : "border-border bg-card text-gray-600 hover:bg-surface",
-                    )}
-                    onClick={() => setDiary(value)}
-                  >
-                    {t(key)}
-                  </button>
-                ))}
+                  </strong>
+                  <span className="mx-2">·</span>
+                  {t("repeatLinkHint")}
+                </p>
                 <button
-                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-border bg-card px-3 text-xs font-medium text-gray-600 hover:bg-surface"
-                  onClick={() => open({ kind: "import" })}
+                  aria-label={t("removeDiary")}
+                  className="shrink-0 rounded p-1 hover:bg-surface focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() => setDiary(false)}
                 >
-                  <Upload className="size-3.5" />
-                  {t("importOutline")}
+                  <X className="size-4" />
                 </button>
               </div>
-              <div className="ml-auto flex items-center gap-2">
-                <details
-                  ref={modePickerRef}
-                  className="group relative"
-                  data-testid="mode-picker"
-                >
-                  <summary
-                    aria-label={t("mode")}
-                    className="flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-gray-600 transition-colors hover:bg-surface [&::-webkit-details-marker]:hidden"
-                  >
-                    {t(brief.mode === "standard" ? "standard" : "explore")}
-                    <ChevronDown className="size-3.5 text-gray-400 transition-transform group-open:rotate-180" />
-                  </summary>
-                  <div
-                    className="absolute right-0 bottom-full z-30 mb-2 w-64 rounded-xl border border-border bg-card p-1.5 shadow-lg"
-                    role="menu"
-                    aria-label={t("mode")}
-                  >
-                    {(["standard", "explore"] as const).map((mode) => (
-                      <button
-                        key={mode}
-                        role="menuitemradio"
-                        aria-checked={brief.mode === mode}
-                        className="flex w-full items-start gap-3 rounded-lg p-3 text-left hover:bg-surface"
-                        onClick={(e) => {
-                          update({ mode });
-                          e.currentTarget
-                            .closest("details")
-                            ?.removeAttribute("open");
-                        }}
-                      >
-                        <span className="mt-0.5 w-4 shrink-0 text-primary">
-                          {brief.mode === mode && <Check className="size-4" />}
-                        </span>
-                        <span>
-                          <span className="block text-sm font-medium text-foreground">
-                            {t(mode)}
-                          </span>
-                          <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
-                            {t(
-                              mode === "standard"
-                                ? "standardHint"
-                                : "exploreHint",
-                            )}
-                          </span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </details>
-
+            )}
+            <div className="px-5 pt-4 pb-3">
+              <Textarea
+                aria-label={t("goal")}
+                rows={3}
+                className="min-h-[112px] resize-none border-0 bg-transparent p-0 text-[15px] leading-8 shadow-none focus:ring-0"
+                placeholder={t(
+                  diary ? "optionalDiaryPrompt" : "regularPlaceholder",
+                )}
+                value={diary ? diaryPrompt : regular}
+                onChange={(e) =>
+                  diary
+                    ? setDiaryPrompt(e.target.value)
+                    : setRegular(e.target.value)
+                }
+              />
+              <div className="mt-5 flex items-center justify-between gap-3 pb-1">
                 <button
-                  aria-label={t("generate")}
-                  className="flex size-9 items-center justify-center rounded-full bg-gray-900 text-white hover:bg-gray-800"
-                  onClick={() => {
-                    if (!diary) {
-                      notify("regularNotice");
-                      return;
-                    }
-                    if (create()) router.push("/study/outline");
-                  }}
+                  className="flex size-8 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-surface focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label={t("importOutline")}
+                  onClick={() => open({ kind: "import" })}
                 >
-                  <ArrowUp className="size-5" />
+                  <Plus className="size-4" />
                 </button>
+                <div className="flex items-center gap-2.5">
+                  <details
+                    ref={modePickerRef}
+                    className="group relative"
+                    data-testid="mode-picker"
+                  >
+                    <summary
+                      aria-label={t("mode")}
+                      className="flex min-h-8 cursor-pointer list-none items-center gap-1 rounded-full border border-border bg-gray-50 px-3.5 text-xs dark:bg-gray-800 [&::-webkit-details-marker]:hidden"
+                    >
+                      {t("interviewMode")}{" "}
+                      <strong className="font-semibold">
+                        {t(brief.mode === "standard" ? "standard" : "explore")}
+                      </strong>
+                      <ChevronDown className="size-3 text-placeholder transition-transform group-open:rotate-180" />
+                    </summary>
+                    <div
+                      className="absolute top-full right-0 z-30 mt-[92px] w-[250px] rounded-xl border border-border bg-card p-2 shadow-[0_8px_24px_rgba(17,24,39,0.06)]"
+                      role="menu"
+                      aria-label={t("mode")}
+                    >
+                      <p className="px-2 py-1 text-[11px] text-placeholder">
+                        {t("selectInterviewMode")}
+                      </p>
+                      {(["standard", "explore"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          role="menuitemradio"
+                          aria-checked={brief.mode === mode}
+                          className={cn(
+                            "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left hover:bg-surface",
+                            brief.mode === mode &&
+                              "bg-indigo-50 dark:bg-indigo-950",
+                          )}
+                          onClick={(e) => {
+                            update({ mode });
+                            e.currentTarget
+                              .closest("details")
+                              ?.removeAttribute("open");
+                          }}
+                        >
+                          <span>
+                            <span
+                              className={cn(
+                                "flex items-center gap-1 text-xs",
+                                brief.mode === mode && "text-primary",
+                              )}
+                            >
+                              {t(mode)}
+                            </span>
+                            <span className="mt-0.5 block text-[11px] leading-4 text-muted-foreground">
+                              {t(
+                                mode === "standard"
+                                  ? "standardHint"
+                                  : "exploreHint",
+                              )}
+                            </span>
+                          </span>
+                          {brief.mode === mode && (
+                            <Check className="size-4 shrink-0 text-primary" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </details>
+                  <button
+                    aria-label={t("generate")}
+                    className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-white hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    onClick={() => {
+                      if (!diary) {
+                        notify("regularNotice");
+                        return;
+                      }
+                      if (diaryPrompt.trim())
+                        update({ goal: diaryPrompt.trim() });
+                      if (create()) router.push("/study/outline");
+                    }}
+                  >
+                    <ArrowUp className="size-5" />
+                  </button>
+                </div>
               </div>
             </div>
           </section>
-          <p className="mt-2 text-center text-xs text-placeholder">
-            {t("aiCaution")}
-          </p>
+          <div
+            className="mt-[22px] flex flex-wrap items-center justify-center gap-3"
+            data-testid="study-type-actions"
+          >
+            {(
+              [
+                ["regular", false],
+                ["diary", true],
+              ] as const
+            ).map(([key, value]) => (
+              <button
+                key={key}
+                aria-pressed={diary === value}
+                className={cn(
+                  "inline-flex h-10 items-center justify-center gap-1.5 rounded-full border px-5 text-[13px] transition-colors",
+                  diary === value
+                    ? "border-primary bg-indigo-50 text-primary dark:bg-indigo-950"
+                    : "border-border bg-card text-muted-foreground hover:bg-surface",
+                )}
+                onClick={() => setDiary(value)}
+              >
+                {diary === value && (
+                  <span className="size-3 rounded-full bg-primary" />
+                )}
+                {t(key)}
+              </button>
+            ))}
+            <button
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-border bg-card px-5 text-[13px] text-muted-foreground hover:bg-surface"
+              onClick={() => open({ kind: "import" })}
+            >
+              <Upload className="size-3.5" />
+              {t("importOutline")}
+            </button>
+          </div>
         </div>
       </main>
       <Footer />

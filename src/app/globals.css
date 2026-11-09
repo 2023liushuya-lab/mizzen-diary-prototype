@@ -99,3 +99,15 @@ textarea {
   font-display: swap;
   src: url("/fonts/mona-sans-latin.woff2") format("woff2");
 }
+
+/* Reference layout for the creation entry; tokens remain Mizzen's. */
+.create-canvas {
+  background-color: #f8fafc;
+  background-image: radial-gradient(circle, #c7d2fe 0.75px, transparent 0.85px);
+  background-size: 24px 24px;
+  background-position: 0 0;
+}
+[data-theme="dark"] .create-canvas {
+  background-color: var(--page);
+  background-image: radial-gradient(circle, #374151 0.75px, transparent 0.85px);
+}

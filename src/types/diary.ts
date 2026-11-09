@@ -5,7 +5,7 @@ export type Limit = { kind: "unlimited" } | { kind: "limited"; count: number };
 export interface DiaryConfig {
   start: string;
   end: string;
-  /** Allow a missed daily task to be made up during the next day (24 hours). Not study-expiry access. */
+  /** Legacy field retained for saved drafts; hidden and ignored in the cap-based single-entry flow. */
   allowLate: boolean;
   daily: Limit;
   total: Limit;

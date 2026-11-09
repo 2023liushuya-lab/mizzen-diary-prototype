@@ -1,4 +1,5 @@
 export const zh = {
+  entryRuleHint: "同一入口反复参与，按次数上限与间隔判断是否可答",
   participantPreview: "预览受访者端",
   makeupHint: "当日漏答，可在次日 24 小时内补答。",
   dailyTimesCompact: "每天 {n} 次",
@@ -351,6 +352,8 @@ export const zh = {
 export type Key = keyof typeof zh;
 export const en: Record<Key, string> = {
   ...zh,
+  entryRuleHint:
+    "One entry; eligibility follows session caps and interval settings",
   participantPreview: "Participant preview",
   makeupHint: "Missed a daily task? Make it up within the next 24-hour day.",
   dailyTimesCompact: "{n} per day",

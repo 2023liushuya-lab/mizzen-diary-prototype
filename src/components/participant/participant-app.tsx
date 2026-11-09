@@ -14,25 +14,26 @@ import {
 } from "lucide-react";
 import { Brand, Preferences } from "@/components/diary/shell";
 import { Button } from "@/components/ui/button";
-import { Select, Input, Textarea } from "@/components/ui/input";
+import { Input, Select, Textarea } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useDiaryStore } from "@/stores/diary-store";
 import {
   useParticipantStore,
+  entryDecision,
+  displayTime,
+  freshSession,
   canAnswer,
-  taskTitle,
-  taskDate,
   type ParticipantScenario,
   type ParticipantTask,
 } from "@/stores/participant-store";
-type Screen = "home" | "study" | "interview" | "join";
+type Screen = "home" | "study" | "interview" | "join" | "history";
 export function ParticipantApp({ screen }: { screen: Screen }) {
   const router = useRouter();
   const state = useParticipantStore();
+  const study = useDiaryStore((s) => s.study);
   const locale = useDiaryStore((s) => s.locale);
   const say = (zh: string, en: string) => (locale === "zh" ? zh : en);
   const [ready, setReady] = useState(false);
-  const [endedTab, setEndedTab] = useState(false);
   useEffect(() => {
     let alive = true;
     Promise.resolve(useParticipantStore.persist.rehydrate()).then(() => {
@@ -42,48 +43,153 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
       alive = false;
     };
   }, []);
+  const config = state.override ?? study.config;
+  const decision = entryDecision(config, state.tasks, state.now);
   const task =
-    state.tasks.find((t) => t.day === state.selectedDay) ?? state.tasks[0];
-  const completed = state.tasks.filter((t) => t.status === "submitted").length;
-  const actionable = state.tasks.filter(canAnswer);
-  const ended = state.currentDay > 14 && actionable.length === 0;
-  const statusText = (t: ParticipantTask) =>
-    ({
-      locked: say("未开放", "Upcoming"),
-      available: say("待完成", "To do"),
-      inprogress: say("进行中", "In progress"),
-      makeup: say("待补答", "Makeup available"),
-      submitted: say("已提交", "Submitted"),
-      missed: say("已错过", "Missed"),
-    })[t.status];
-  const openTask = (t: ParticipantTask) => {
+    state.tasks.find((t) => t.day === state.selectedDay) ??
+    freshSession(0, state.now);
+  const reference = state.tasks.find(
+    (t) =>
+      t.status === "submitted" && t.day < task.day && t.answers.used === "yes",
+  );
+  const history = state.tasks
+    .filter((t) => t.status === "submitted")
+    .toReversed();
+  const enter = () => {
+    if (state.begin()) router.push("/participant/interview");
+  };
+  const view = (t: ParticipantTask) => {
     state.selectTask(t.day);
     router.push("/participant/interview");
   };
-  const cardPrimary =
-    actionable.find((t) => t.status === "makeup") ??
-    actionable.find((t) => t.status === "inprogress") ??
-    actionable[0];
-  const taskName = (day: number) =>
-    locale === "zh"
-      ? taskTitle(day)
-      : day === 1
-        ? "First use and habits"
-        : day === 14
-          ? "Final reflection"
-          : `Day ${day} experience`;
-  const title = say(
-    "记账 App · 14 天体验研究",
-    "Bookkeeping app · 14-day diary",
+  const title = study.title;
+  const ended = decision.reason === "ended" || decision.reason === "total";
+  const entryTitle = {
+    allowed: decision.completed
+      ? say("可以开始新一次访谈", "Ready for another session")
+      : say("可以开始访谈", "Ready to start"),
+    resume: say("你有一次未完成的访谈", "You have an unfinished interview"),
+    daily: say("今日参与次数已达上限", "Daily participation limit reached"),
+    interval: say(
+      "尚未满足最小参与间隔",
+      "Please wait before your next session",
+    ),
+    total: say("已完成本研究的参与次数", "Study participation complete"),
+    notstarted: say("研究尚未开始", "Study has not started"),
+    ended: say("研究已结束", "Study has ended"),
+    invalid: say("研究配置需要确认", "Study configuration needs review"),
+  }[decision.reason];
+  const entryHint =
+    decision.reason === "resume"
+      ? say(
+          "继续上次进度，不会新增一次记录。",
+          "Resume your saved progress without creating a new session.",
+        )
+      : decision.reason === "allowed"
+        ? config.daily.kind === "limited"
+          ? say(
+              `今日已完成 ${decision.today} 次，还可参与 ${Math.max(0, config.daily.count - decision.today)} 次。`,
+              `Completed ${decision.today} today; ${Math.max(0, config.daily.count - decision.today)} more allowed.`,
+            )
+          : say(
+              `今日已完成 ${decision.today} 次，单日次数不限。`,
+              `Completed ${decision.today} today; no daily limit.`,
+            )
+        : decision.nextAt
+          ? say(
+              `下次可参与时间：${displayTime(decision.nextAt)}。`,
+              `Next available: ${displayTime(decision.nextAt)}.`,
+            )
+          : decision.reason === "total" || decision.reason === "ended"
+            ? say(
+                "可以回看已提交的参与记录，不能开始新的访谈。",
+                "You can review submitted entries; new interviews are closed.",
+              )
+            : decision.reason === "invalid"
+              ? say(
+                  "请联系研究员确认起止时间。",
+                  "Please contact the researcher to confirm study dates.",
+                )
+              : say(
+                  "研究周期内已没有下一次可参与的时间。",
+                  "No further eligible time remains within the study window.",
+                );
+  const primary =
+    decision.reason === "resume"
+      ? say("继续访谈", "Resume interview")
+      : decision.completed
+        ? say("开始新一次访谈", "Start another interview")
+        : say("开始访谈", "Start interview");
+  const limitSummary = say(
+    `${config.daily.kind === "limited" ? `每天最多 ${config.daily.count} 次` : "单日次数不限"} · ${config.total.kind === "limited" ? `累计最多 ${config.total.count} 次` : "累计次数不限"}`,
+    `${config.daily.kind === "limited" ? `Up to ${config.daily.count} per day` : "No daily limit"} · ${config.total.kind === "limited" ? `Up to ${config.total.count} total` : "No total limit"}`,
+  );
+  const entryCard = (
+    <section
+      className="rounded-xl border border-border p-4"
+      data-testid="participant-study-card"
+      data-decision={decision.reason}
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-primary">
+          {say("日记法研究", "Diary study")}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {ended ? say("已结束", "Closed") : say("进行中", "Active")}
+        </span>
+      </div>
+      <h2 className="mt-3 text-base font-semibold leading-7">{title}</h2>
+      <p className="mt-2 text-xs leading-6 text-muted-foreground">
+        {config.start} — {config.end}
+        <br />
+        {limitSummary}
+      </p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {say(
+          `累计完成 ${decision.completed} 次`,
+          `${decision.completed} sessions completed`,
+        )}
+      </p>
+      <div className="mt-4 border-t border-border pt-4" aria-live="polite">
+        <h3 className="text-sm font-medium">{entryTitle}</h3>
+        <p className="mt-2 text-xs leading-6 text-muted-foreground">
+          {entryHint}
+        </p>
+        <Button
+          className="mt-4 w-full"
+          disabled={!decision.allowed}
+          onClick={enter}
+        >
+          {decision.allowed
+            ? primary
+            : decision.reason === "interval"
+              ? say("等待下一次开放", "Waiting")
+              : decision.reason === "notstarted"
+                ? say("尚未开放", "Not open yet")
+                : say("暂不可参与", "Unavailable")}
+          <ArrowRight />
+        </Button>
+      </div>
+      <Link
+        href="/participant/history"
+        className="mt-4 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground hover:text-primary"
+      >
+        {say("参与记录", "Participation history")}
+        <span className="flex items-center gap-1">
+          {history.length}
+          <ChevronRight className="size-4" />
+        </span>
+      </Link>
+    </section>
   );
   const samples = [
     say(
-      "分类入口不好找，这次比昨天花了更久。",
-      "Finding the right category took longer today.",
+      "分类入口不好找，这次花了更久。",
+      "Finding the right category took longer this time.",
     ),
     say(
       "操作和前几次差不多，饭后拍照记账很顺畅。",
-      "The same as before: smooth receipt capture after dinner.",
+      "Receipt capture was smooth, like previous sessions.",
     ),
   ];
   const followup =
@@ -92,32 +198,29 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
           "这次没有使用，主要是没有遇到需要它的情况，还是有其他原因？不记得也可以直接说明。",
           "What kept you from using it? It is fine if you do not remember.",
         )
-      : task.day === 1 || !task.useHistory
+      : !reference || !task.useHistory
         ? say(
-            "刚才提到的经历中，哪个步骤最影响你的感受？可以结合一个具体细节说说。",
+            "刚才提到的经历中，哪个步骤最影响你的感受？可以说一个具体细节。",
             "Which step affected your experience most? A concrete detail would help.",
           )
-        : task.answers.product !== "产品 A"
+        : task.answers.product !== reference.answers.product
           ? say(
-              "确认一下：这次评价的是产品 B，上次记录对应产品 A。它们在相同任务下有什么不同？不同产品的偏好不需要保持一致。",
-              "This time you evaluated B; the earlier entry was about A. How did they differ for the same task?",
+              `这次评价的是${task.answers.product}，第 ${reference.day} 次记录对应${reference.answers.product}。它们在相同用途下有什么不同？`,
+              `This entry concerns ${task.answers.product}, while session ${reference.day} concerned ${reference.answers.product}. How did they differ for the same purpose?`,
             )
-          : task.answers.context.includes("通勤") ||
-              task.answers.context.includes("办公室")
+          : task.answers.context !== reference.answers.context
             ? say(
-                "你第 1 天记录的是在家使用，这次是在通勤或工作场景。这些环境差异对操作有什么影响？",
-                "Day 1 was at home; this time you used it while commuting or working. How did the setting affect the experience?",
+                `第 ${reference.day} 次的使用情境是“${reference.answers.context}”，这次是“${task.answers.context}”。环境或用途的变化带来了什么影响？`,
+                `Session ${reference.day} was in ${reference.answers.context}; this time it was ${task.answers.context}. How did the setting affect the experience?`,
               )
-            : task.answers.score <= 2
+            : task.answers.score !== reference.answers.score
               ? say(
-                  "你第 1 天给产品 A 的满意度是 4 分，这次是 " +
-                    task.answers.score +
-                    " 分。今天有什么具体经历影响了评价？如果是环境或任务不同，也可以说明。",
-                  "You rated product A 4/5 on day 1. What happened today that affected this rating? Different conditions may explain it.",
+                  `第 ${reference.day} 次你给了 ${reference.answers.score} 分，这次是 ${task.answers.score} 分。有什么具体经历影响了评价？`,
+                  `Session ${reference.day} was rated ${reference.answers.score}/5; this time ${task.answers.score}/5. What affected this rating?`,
                 )
               : say(
-                  "回想第 1 天和这次的经历，哪些保持不变，哪些发生了变化？可以说一个小细节，没有新的变化也没关系。",
-                  "Thinking about day 1 and today, what stayed the same and what changed? No change is also a valid answer.",
+                  "回想前次和这次的经历，哪些保持不变，哪些发生了变化？没有新变化也没关系。",
+                  "What stayed the same or changed since the earlier entry? No change is also valid.",
                 );
   const labels = [
     say("最近使用", "Recent use"),
@@ -156,7 +259,6 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
               onChange={(e) => {
                 const v = e.target.value as ParticipantScenario;
                 state.chooseScenario(v);
-                setEndedTab(v === "ended");
                 router.push(
                   v === "first" ? "/participant/join" : "/participant",
                 );
@@ -165,17 +267,27 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
               {(
                 [
                   ["first", "首次链接进入", "First entry"],
-                  ["return", "再次打开 App · 续答", "Return and resume"],
-                  ["makeup", "昨日待补答 + 今日待答", "Makeup and today"],
-                  ["missed", "补答过期 · 后续仍可答", "Missed task"],
-                  ["waiting", "今日完成 · 等待下一次", "Waiting"],
                   [
-                    "lastday",
-                    "研究结束 · 最后一天可补答",
-                    "Final makeup window",
+                    "configured",
+                    "使用研究员当前配置",
+                    "Researcher configuration",
                   ],
+                  [
+                    "multiple",
+                    "一天多次 · 还可参与",
+                    "Multiple sessions allowed",
+                  ],
+                  [
+                    "return",
+                    "有未完成访谈 · 继续",
+                    "Resume unfinished interview",
+                  ],
+                  ["dailyLimit", "单日上限 · 明天再来", "Daily limit reached"],
+                  ["interval", "最小间隔 · 等待", "Minimum interval"],
+                  ["total", "累计次数已达上限", "Total limit reached"],
+                  ["notstarted", "研究未开始", "Study not started"],
                   ["ended", "研究已结束", "Study ended"],
-                  ["identity", "无法确认参与身份", "Identity recovery"],
+                  ["identity", "恢复参与身份", "Identity recovery"],
                 ] as const
               ).map(([v, zh, en]) => (
                 <option key={v} value={v}>
@@ -187,20 +299,14 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
           </div>
         </div>
       </div>
-      <div className="mx-auto max-w-[440px] bg-card sm:my-7 sm:min-h-[740px] sm:rounded-2xl sm:border sm:border-border">
+      <div className="mx-auto max-w-[440px] bg-card sm:my-7 sm:min-h-[700px] sm:rounded-2xl sm:border sm:border-border">
         <header className="flex h-16 items-center justify-between border-b border-border px-5">
           <div className="flex items-center gap-2.5">
             {screen !== "home" && (
               <button
                 aria-label={say("返回", "Back")}
-                onClick={() =>
-                  router.push(
-                    screen === "interview"
-                      ? "/participant/study"
-                      : "/participant",
-                  )
-                }
                 className="rounded-md p-1 text-muted-foreground hover:bg-surface"
+                onClick={() => router.push("/participant")}
               >
                 <ArrowLeft className="size-5" />
               </button>
@@ -224,19 +330,13 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
             </h1>
             <p className="mt-3 text-sm leading-7 text-muted-foreground">
               {say(
-                "请使用原来参与研究的账号。暂时无法确认身份，不会为你新建一份参与记录。",
-                "Use the account you joined with. We will not create duplicate participation.",
+                "使用原参与账号恢复记录，不会另建一次参与身份。",
+                "Use the account you joined with to restore your entries.",
               )}
             </p>
             <Button className="mt-6 w-full" onClick={() => state.restore()}>
               {say("恢复示例账号", "Restore demo account")}
             </Button>
-            <p className="mt-3 text-xs leading-6 text-placeholder">
-              {say(
-                "这里仅模拟恢复结果，不提供真实登录或跨设备身份识别。",
-                "Simulated recovery only; no real login or cross-device identification.",
-              )}
-            </p>
           </section>
         ) : screen === "join" ? (
           <section className="p-6">
@@ -246,52 +346,43 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
             <h1 className="mt-5 text-xl font-semibold leading-8">{title}</h1>
             <p className="mt-4 text-sm leading-7 text-muted-foreground">
               {say(
-                "记录每天真实的使用体验，了解操作习惯和感受的变化。每天约 5–8 分钟，通过同一个入口继续参与。",
-                "Share real experiences each day, about 5–8 minutes per session, using one entry point.",
+                "记录每一次真实的使用体验。始终通过同一个链接或 App 研究卡片进入，系统会判断当前能否参与。",
+                "Record each real experience. Return through the same link or app card; eligibility is checked each time.",
               )}
             </p>
             <div className="my-6 divide-y divide-border rounded-xl border border-border px-4 text-sm">
               <p className="py-3">
-                {say(
-                  "研究时间：11 月 9 日至 11 月 22 日",
-                  "Study dates: Nov 9–22",
-                )}
+                {config.start} — {config.end}
               </p>
-              <p className="py-3">
+              <p className="py-3">{limitSummary}</p>
+              <p className="py-3 text-xs text-muted-foreground">
                 {say(
-                  "参与要求：每天 1 次，共 14 次",
-                  "Participation: 1 session daily, 14 total",
-                )}
-              </p>
-              <p className="py-3">
-                {say(
-                  "当日漏答，可在次日 24 小时内补答",
-                  "Missed daily tasks can be completed during the next day",
+                  "这是参与上限，不要求每天答满。单日按北京时间 00:00—24:00 计算。",
+                  "These are caps, not daily targets. A day runs 00:00–24:00 in Asia/Shanghai.",
                 )}
               </p>
             </div>
-            <div className="mb-6 flex gap-2 text-xs leading-6 text-muted-foreground">
-              <ShieldCheck className="mt-1 size-4 shrink-0" />
+            <p className="mb-6 text-xs leading-6 text-muted-foreground">
               {say(
-                "确认参与后，研究会保存在 Mizzen App 的“我的研究”。本预览以示例账号 P001 演示。",
-                "Joining adds this study to My studies. This preview uses demo account P001.",
+                "确认参与后，研究会保存在 App 的“我的研究”。示例账号 P001。",
+                "Joining adds this study to My studies. Demo account P001.",
               )}
-            </div>
+            </p>
             <Button
               className="w-full"
               onClick={() => {
-                if (!state.joined) state.join();
+                state.join();
                 router.push("/participant/study");
               }}
             >
               {state.joined
-                ? say("返回我的研究", "Return to study")
+                ? say("进入研究", "Open study")
                 : say("确认参与", "Join study")}
             </Button>
             <p className="mt-3 text-center text-xs text-placeholder">
               {say(
-                "仅查看邀请不会自动加入研究",
-                "Viewing this invitation does not enroll you",
+                "仅查看链接不会计入参与次数",
+                "Opening the link does not count as a session",
               )}
             </p>
           </section>
@@ -303,8 +394,8 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
             </h1>
             <p className="mt-3 text-sm leading-7 text-muted-foreground">
               {say(
-                "确认参与邀请后，你的日记研究会显示在这里。",
-                "Your diary studies appear here after you accept an invitation.",
+                "确认参与邀请后，研究会显示在这里。",
+                "Your study appears after you accept the invitation.",
               )}
             </p>
             <Button
@@ -314,246 +405,69 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
               {say("查看研究邀请", "View invitation")}
             </Button>
           </section>
-        ) : screen === "home" ? (
+        ) : screen === "history" ? (
           <section className="p-5">
             <h1 className="text-xl font-semibold">
-              {say("我的研究", "My studies")}
+              {say("参与记录", "Participation history")}
             </h1>
-            <div className="mt-5 flex gap-5 border-b border-border">
-              <button
-                className={cn(
-                  "border-b-2 pb-3 text-sm",
-                  !endedTab
-                    ? "border-primary font-medium text-primary"
-                    : "border-transparent text-muted-foreground",
-                )}
-                onClick={() => setEndedTab(false)}
-              >
-                {say("进行中", "Active")}
-              </button>
-              <button
-                className={cn(
-                  "border-b-2 pb-3 text-sm",
-                  endedTab
-                    ? "border-primary font-medium text-primary"
-                    : "border-transparent text-muted-foreground",
-                )}
-                onClick={() => setEndedTab(true)}
-              >
-                {say("已结束", "Ended")}
-              </button>
-            </div>
-            {ended === endedTab ? (
-              <button
-                className="mt-5 w-full rounded-xl border border-border p-4 text-left hover:bg-gray-50 dark:hover:bg-surface"
-                onClick={() => router.push("/participant/study")}
-                data-testid="participant-study-card"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-primary">
-                    {say("日记法研究", "Diary study")}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {ended ? say("已结束", "Ended") : say("进行中", "Active")}
-                  </span>
-                </div>
-                <h2 className="mt-3 text-base font-semibold leading-7">
-                  {title}
-                </h2>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {say(
-                    `已完成 ${completed} / 14 次`,
-                    `Completed ${completed} / 14 sessions`,
-                  )}
-                </p>
-                <div className="mt-3 h-1 overflow-hidden rounded-full bg-surface">
-                  <div
-                    className="h-full bg-primary"
-                    style={{ width: `${(completed / 14) * 100}%` }}
-                  />
-                </div>
-                <div className="mt-5 border-t border-border pt-4">
-                  <p className="text-sm font-medium">
-                    {ended
-                      ? say(
-                          `已完成 ${completed} 次，错过 ${14 - completed} 次`,
-                          `Completed ${completed}; missed ${14 - completed}`,
-                        )
-                      : cardPrimary?.status === "makeup"
-                        ? say(
-                            `第 ${cardPrimary.day} 天待补答`,
-                            `Day ${cardPrimary.day} makeup available`,
-                          )
-                        : cardPrimary
-                          ? say(
-                              `第 ${cardPrimary.day} 天${cardPrimary.status === "inprogress" ? "进行中" : "待完成"}`,
-                              `Day ${cardPrimary.day} ${statusText(cardPrimary)}`,
-                            )
-                          : say("今日已完成", "Today is complete")}
-                  </p>
-                  <p className="mt-2 text-xs leading-6 text-muted-foreground">
-                    {ended
-                      ? say(
-                          "可查看已提交记录，无法继续作答",
-                          "View submitted entries; answering is closed",
-                        )
-                      : cardPrimary?.status === "makeup"
-                        ? say(
-                            `补答截止：${taskDate(cardPrimary.day + 1)} 24:00${actionable.length > 1 ? "；今日还有 1 个待完成任务" : ""}`,
-                            `Makeup deadline: ${taskDate(cardPrimary.day + 1)} 24:00`,
-                          )
-                        : cardPrimary
-                          ? say(
-                              "进度自动保存在当前设备，可随时回来继续",
-                              "Progress is saved on this device",
-                            )
-                          : say(
-                              `下次开放：${taskDate(state.currentDay + 1)} 00:00`,
-                              `Next opens: ${taskDate(state.currentDay + 1)} 00:00`,
-                            )}
-                  </p>
-                  <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                    {ended
-                      ? say("查看研究", "View study")
-                      : cardPrimary?.status === "makeup"
-                        ? say("去补答", "Make up task")
-                        : cardPrimary?.status === "inprogress"
-                          ? say("继续访谈", "Resume interview")
-                          : cardPrimary
-                            ? say("开始访谈", "Start interview")
-                            : say("查看进度", "View progress")}
-                    <ChevronRight className="size-4" />
-                  </span>
-                </div>
-              </button>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {say(
+                "这里只展示已提交的访谈，不是待完成任务。",
+                "Only submitted sessions appear here; this is not a task list.",
+              )}
+            </p>
+            {history.length ? (
+              <div className="mt-4 divide-y divide-border">
+                {history.map((t) => (
+                  <button
+                    key={t.day}
+                    className="flex w-full items-center justify-between gap-3 py-4 text-left"
+                    data-testid="participation-record"
+                    onClick={() => view(t)}
+                  >
+                    <span>
+                      <span className="block text-sm font-medium">
+                        {say(`第 ${t.day} 次访谈`, `Session ${t.day}`)}
+                      </span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {displayTime(t.submittedAt ?? t.startedAt)} ·{" "}
+                        {say("已提交", "Submitted")}
+                      </span>
+                    </span>
+                    <ChevronRight className="size-4 text-muted-foreground" />
+                  </button>
+                ))}
+              </div>
             ) : (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                {endedTab
-                  ? say("暂无已结束的研究", "No ended studies")
-                  : say("暂无进行中的研究", "No active studies")}
+              <p className="py-10 text-sm text-muted-foreground">
+                {say("暂时没有已提交记录。", "No submitted entries yet.")}
               </p>
             )}
           </section>
-        ) : screen === "study" ? (
-          <section className="p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-primary">
-                {say("日记法研究", "Diary study")}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {ended
-                  ? say("已结束", "Ended")
-                  : state.currentDay > 14
-                    ? say("补答期", "Makeup period")
-                    : say(
-                        `第 ${state.currentDay} / 14 天`,
-                        `Day ${state.currentDay} / 14`,
-                      )}
-              </span>
-            </div>
-            <h1 className="mt-3 text-xl font-semibold leading-8">{title}</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
+        ) : screen !== "interview" || task.day === 0 ? (
+          <section className="space-y-5 p-5">
+            <h1 className="text-xl font-semibold">
+              {screen === "home"
+                ? say("我的研究", "My studies")
+                : say("参与研究", "Participate")}
+            </h1>
+            {entryCard}
+            <p className="text-xs leading-6 text-muted-foreground">
               {say(
-                `已完成 ${completed} / 14 次`,
-                `Completed ${completed} / 14 sessions`,
+                "有未完成访谈时优先续答；提交后才计入每日与累计次数。次数未用完不算漏答。",
+                "Unfinished interviews resume first. Completed submissions count toward daily and total caps; unused capacity is not a missed task.",
               )}
             </p>
-            {state.tasks.some((t) => t.status === "makeup") && (
-              <div className="mt-5 rounded-lg bg-indigo-50 p-3 text-xs leading-6 text-primary dark:bg-indigo-950">
-                {state.currentDay > 14
-                  ? say(
-                      "研究日期已结束，最后一天仍在补答期内。",
-                      "Study dates have ended, but the final task is still eligible for makeup.",
-                    )
-                  : say(
-                      "昨天的任务可以补答，也可以先完成今天的任务，两者分别记录。",
-                      "Yesterday’s makeup and today’s task are separate; either can be completed first.",
-                    )}
-              </div>
-            )}
-            <h2 className="mt-6 mb-2 text-sm font-semibold">
-              {say("任务与记录", "Tasks and entries")}
-            </h2>
-            <div className="divide-y divide-border">
-              {state.tasks.map((t) => (
-                <div
-                  key={t.day}
-                  className="flex items-center gap-3 py-4"
-                  data-testid="participant-task"
-                  data-day={t.day}
-                  data-status={t.status}
-                >
-                  <span
-                    className={cn(
-                      "flex size-8 shrink-0 items-center justify-center rounded-full text-xs",
-                      t.status === "submitted"
-                        ? "bg-indigo-50 text-primary dark:bg-indigo-950"
-                        : "bg-surface text-muted-foreground",
-                    )}
-                  >
-                    {t.status === "submitted" ? (
-                      <Check className="size-4" />
-                    ) : (
-                      t.day
-                    )}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{taskName(t.day)}</p>
-                    <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
-                      {taskDate(t.day)} · {statusText(t)}
-                      {t.status === "makeup"
-                        ? say(
-                            ` · 补答截止 ${taskDate(t.day + 1)} 24:00`,
-                            ` · Until ${taskDate(t.day + 1)} 24:00`,
-                          )
-                        : t.status === "locked"
-                          ? " · 00:00 " + say("开放", "opens")
-                          : t.status === "missed"
-                            ? say(" · 补答期限已过", " · Makeup window closed")
-                            : ""}
-                    </p>
-                  </div>
-                  {canAnswer(t) ? (
-                    <Button
-                      size="sm"
-                      variant={t.status === "makeup" ? "outline" : "default"}
-                      onClick={() => openTask(t)}
-                    >
-                      {t.status === "makeup"
-                        ? t.step > 0
-                          ? say("继续补答", "Resume")
-                          : say("补答", "Make up")
-                        : t.status === "inprogress"
-                          ? say("继续", "Resume")
-                          : say("开始", "Start")}
-                    </Button>
-                  ) : t.status === "submitted" ? (
-                    <button
-                      className="shrink-0 text-xs text-primary hover:underline"
-                      onClick={() => openTask(t)}
-                    >
-                      {say("查看", "View")}
-                    </button>
-                  ) : (
-                    <span className="shrink-0 text-xs text-placeholder">
-                      {t.status === "locked"
-                        ? say("未开放", "Upcoming")
-                        : say("不可补答", "Closed")}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
           </section>
         ) : (
           <section className="p-5">
             <span className="text-xs text-primary">
-              {taskDate(task.day)} ·{" "}
-              {task.status === "makeup"
-                ? say("补答昨日任务", "Makeup task")
-                : say(`第 ${task.day} 次访谈`, `Session ${task.day}`)}
+              {displayTime(task.startedAt)} ·{" "}
+              {say(`第 ${task.day} 次访谈`, `Session ${task.day}`)}
             </span>
-            <h1 className="mt-2 text-lg font-semibold">{taskName(task.day)}</h1>
+            <h1 className="mt-2 text-lg font-semibold">
+              {say("记录本次使用体验", "Record this experience")}
+            </h1>
             {task.status === "submitted" ? (
               <>
                 <div className="my-5 flex items-center gap-2 rounded-lg bg-indigo-50 p-3 text-sm text-primary dark:bg-indigo-950">
@@ -591,21 +505,20 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
                   variant="outline"
                   onClick={() => router.push("/participant/study")}
                 >
-                  {say("返回任务列表", "Back to tasks")}
+                  {say("返回研究", "Back to study")}
                 </Button>
               </>
-            ) : !canAnswer(task) ? (
+            ) : !canAnswer(task) || !decision.allowed ? (
               <div className="py-8">
                 <Clock3 className="mb-4 size-7 text-muted-foreground" />
-                <h2 className="text-base font-semibold">
-                  {task.status === "locked"
-                    ? say("任务尚未开放", "Not open yet")
-                    : say("补答期限已结束", "Makeup window closed")}
-                </h2>
+                <h2 className="font-semibold">{entryTitle}</h2>
                 <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                  {entryHint}
+                </p>
+                <p className="mt-3 text-xs text-muted-foreground">
                   {say(
-                    "已填写的内容仍保留，但当前不能继续或提交这次任务。你可以返回查看其他任务。",
-                    "Your draft is retained, but this task cannot be continued or submitted. Check other tasks.",
+                    "草稿保留，当前无法提交。",
+                    "Your draft is kept; submission is unavailable.",
                   )}
                 </p>
                 <Button
@@ -613,7 +526,7 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
                   variant="outline"
                   onClick={() => router.push("/participant/study")}
                 >
-                  {say("查看其他任务", "View other tasks")}
+                  {say("返回研究", "Back to study")}
                 </Button>
               </div>
             ) : (
@@ -638,8 +551,8 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
                   <div className="py-7">
                     <Question
                       text={say(
-                        "最近一次任务期间，你有使用这个产品吗？",
-                        "Did you use the product during this task period?",
+                        "最近有使用这个产品吗？",
+                        "Have you used the product since the previous entry?",
                       )}
                     />
                     {[
@@ -813,14 +726,14 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
                 ) : task.step === 3 ? (
                   <div className="py-6">
                     <Question text={followup} />
-                    {task.day > 1 &&
+                    {Boolean(reference) &&
                       task.answers.used !== "no" &&
                       !task.useHistory && (
                         <div className="mt-4 rounded-lg border border-border p-3 text-xs leading-6 text-muted-foreground">
                           <p>
                             {say(
-                              "可参考本研究第 1 天的产品 A 体验，对照本次变化。是否结合前次记录继续聊？",
-                              "An earlier product A entry from day 1 is available. Would you like to compare it with today?",
+                              "可参考本研究前次已提交的体验记录，对照本次变化。是否结合前次记录继续聊？",
+                              "An earlier submitted entry is available. Would you like to compare it with this experience?",
                             )}
                           </p>
                           <button
@@ -831,7 +744,7 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
                           </button>
                         </div>
                       )}
-                    {task.day > 1 &&
+                    {Boolean(reference) &&
                       task.answers.used !== "no" &&
                       task.useHistory && (
                         <details className="mt-4 rounded-lg bg-surface p-3 text-xs leading-6 text-muted-foreground">
@@ -843,8 +756,8 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
                           </summary>
                           <p className="mt-2">
                             {say(
-                              "来源：本研究，第 1 天 · 产品 A · 满意度 4/5。情境：在家，安静环境。演示记录，不是真实访谈。",
-                              "Source: this study, day 1, product A, 4/5, at home. This is a simulated entry.",
+                              "来源：本研究前次已提交记录。以下为该次原始记录，演示数据。",
+                              "Source: an earlier submitted session in this study. Simulated data.",
                             )}
                           </p>
                         </details>
@@ -874,7 +787,7 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
                   <div className="space-y-4 py-6 text-sm leading-7">
                     <Question text={say("确认本次记录", "Review your entry")} />
                     <p>
-                      {taskDate(task.day)} ·{" "}
+                      {displayTime(task.startedAt)} ·{" "}
                       {task.answers.used === "no"
                         ? say("本次未使用", "Not used this time")
                         : `${task.answers.product} · ${task.answers.context}`}
@@ -894,8 +807,8 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
                     </p>
                     <p className="rounded-lg bg-surface p-3 text-xs text-muted-foreground">
                       {say(
-                        "提交后本次记录不可修改。你仍可在后续任务中补充或修正之前的说法。",
-                        "This entry is read-only after submission; later tasks can clarify earlier statements.",
+                        "提交后本次记录不可修改。你仍可在后续访谈中补充或修正之前的说法。",
+                        "This entry is read-only after submission; later sessions can clarify earlier statements.",
                       )}
                     </p>
                   </div>
@@ -937,7 +850,7 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
                   className="mt-5 block w-full py-2 text-center text-xs text-muted-foreground hover:text-primary"
                   onClick={() => router.push("/participant/study")}
                 >
-                  {say("稍后继续，返回任务列表", "Save and return to tasks")}
+                  {say("稍后继续，返回研究", "Save and return to study")}
                 </button>
               </>
             )}
@@ -945,26 +858,45 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
         )}
         <div className="px-5 py-5 text-center text-[10px] leading-5 text-placeholder">
           {say(
-            "交互原型 · 示例账号与任务 · 追问为规则驱动演示",
-            "Prototype · demo account and tasks · rule-based follow-ups",
+            "交互原型 · 示例账号 · 追问为规则演示",
+            "Prototype · demo account · rule-based follow-ups",
           )}
         </div>
       </div>
       <div className="mx-auto max-w-[440px] px-5 pb-6 text-xs leading-6 text-muted-foreground">
-        {say("演示时钟：", "Demo clock: ")}
-        {`${taskDate(state.currentDay)} 12:00`}
-        {state.tasks.some((t) => t.status === "makeup") && (
+        <p>
+          {say("演示时间（北京时间）：", "Demo clock (Asia/Shanghai): ")}
+          {displayTime(state.now)}
+        </p>
+        <div className="mt-2 flex flex-wrap gap-4">
           <button
-            className="mt-2 block text-primary hover:underline"
-            onClick={() => state.expire()}
+            className="text-primary hover:underline"
+            onClick={() => state.advanceClock(1)}
           >
-            {say("推进到补答截止后", "Advance past makeup deadline")}
+            {say("推进 1 小时", "Advance 1 hour")}
           </button>
-        )}
+          <button
+            className="text-primary hover:underline"
+            onClick={() => state.advanceClock(24)}
+          >
+            {say("推进 1 天", "Advance 1 day")}
+          </button>
+        </div>
+        <p className="mt-3">
+          {state.override
+            ? say(
+                "当前使用场景演示规则，不修改研究员配置。",
+                "Using scenario rules without changing researcher settings.",
+              )
+            : say(
+                "当前使用研究员端的研究周期、每日次数、累计次数和最小间隔配置。",
+                "Using researcher settings for dates, daily and total caps, and minimum interval.",
+              )}
+        </p>
         <p className="mt-2">
           {say(
-            "场景切换仅重置 C 端演示进度；不会修改研究员端配置。账号关联、App 唤起及跨设备同步均未接入。",
-            "Scenario changes reset only participant demo data. Account linking, app opening and cross-device sync are not connected.",
+            "仅本地模拟参与判断与草稿保存；未接入真实账号、App 唤起或服务端。",
+            "Eligibility and drafts are simulated locally. Real accounts, app links and backend are not connected.",
           )}
         </p>
       </div>

@@ -129,7 +129,7 @@ export function DiaryConfigPanel() {
       <div className="pb-3">
         <h3 className="text-sm font-medium text-primary">{t("diaryConfig")}</h3>
         <p className="mt-1 text-[11px] text-muted-foreground">
-          {t("repeatLinkHint")}
+          {t("entryRuleHint")}
         </p>
       </div>
       <div className={row}>
@@ -192,24 +192,6 @@ export function DiaryConfigPanel() {
         daily
         onChange={(daily) => update({ daily })}
       />
-      <div className={row} data-testid="makeup-rule">
-        <div className="min-w-0 flex-1">
-          <span className="text-xs text-muted-foreground">
-            {t("allowLate")}
-          </span>
-          <p
-            id="makeup-rule-description"
-            className="mt-1 text-[11px] leading-5 text-placeholder"
-          >
-            {t("makeupHint")}
-          </p>
-        </div>
-        <Toggle
-          label={t("allowLate")}
-          checked={c.allowLate}
-          onChange={(allowLate) => update({ allowLate })}
-        />
-      </div>
       <LimitRow
         label={t("totalLimit")}
         value={c.total}

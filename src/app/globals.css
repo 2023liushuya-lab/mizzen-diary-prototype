@@ -1,0 +1,101 @@
+@import "tailwindcss";
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+@theme inline {
+  --color-primary: var(--brand);
+  --color-primary-hover: var(--brand-hover);
+  --color-primary-foreground: #fff;
+  --color-background: var(--page);
+  --color-card: var(--card);
+  --color-surface: var(--surface);
+  --color-foreground: var(--text);
+  --color-muted-foreground: var(--muted);
+  --color-placeholder: var(--placeholder);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-accent: var(--accent);
+  --color-ai: var(--ai);
+  --color-error: var(--error);
+  --color-error-bg: var(--error-bg);
+  --color-success-bg: var(--success-bg);
+  --color-warning-bg: var(--warning-bg);
+  --font-sans:
+    "Mona Sans", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji";
+}
+:root {
+  color-scheme: light;
+  --brand: #4f46e5;
+  --brand-hover: #4338ca;
+  --page: #ffffff;
+  --card: #fff;
+  --surface: #f3f4f6;
+  --text: #111827;
+  --muted: #6b7280;
+  --placeholder: #9ca3af;
+  --border: #e5e7eb;
+  --ring: #c7d2fe;
+  --accent: #eef2ff;
+  --ai: #e0e7ff;
+  --error: #c4433a;
+  --error-bg: #fff3f1;
+  --success-bg: #edfce0;
+  --warning-bg: #fff0e4;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --brand: #a5b4fc;
+  --brand-hover: #c7d2fe;
+  --page: #030712;
+  --card: #111827;
+  --surface: #1f2937;
+  --text: #f3f4f6;
+  --muted: #9ca3af;
+  --placeholder: #9ca3af;
+  --border: #374151;
+  --ring: #6366f1;
+  --accent: #312e81;
+  --ai: #1e3a5f;
+  --error: #fca5a5;
+  --error-bg: #450a0a;
+  --success-bg: #14532d;
+  --warning-bg: #431407;
+}
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+}
+button:not(:disabled),
+select {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+a,
+button,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+::selection {
+  background: var(--ring);
+}
+[data-theme="dark"] [data-slot="button"]:not([class*="border"]) {
+  --color-primary-foreground: #111827;
+}
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+@font-face {
+  font-family: "Mona Sans";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("/fonts/mona-sans-latin.woff2") format("woff2");
+}

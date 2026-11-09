@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
@@ -38,8 +38,30 @@ export function CreatePage() {
   const [diary, setDiary] = useState(true);
   const [regular, setRegular] = useState("");
   const [collapsed, setCollapsed] = useState(false);
+  const modePickerRef = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const onPointerDown = (e: MouseEvent) => {
+      if (
+        modePickerRef.current?.open &&
+        !modePickerRef.current.contains(e.target as Node)
+      ) {
+        modePickerRef.current.removeAttribute("open");
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && modePickerRef.current?.open) {
+        modePickerRef.current.removeAttribute("open");
+      }
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
   const fill =
-    "inline-block h-8 rounded-none border-0 border-b border-indigo-200 bg-transparent px-1 text-[14px] text-primary focus:ring-0 focus:border-primary";
+    "inline-block h-8 rounded-none border-0 border-b border-indigo-300 bg-indigo-50/35 px-2 text-[14px] font-medium text-primary transition-colors hover:bg-indigo-50/70 focus:ring-0 focus:border-primary focus:bg-indigo-50/80";
   return (
     <>
       <aside
@@ -180,7 +202,10 @@ export function CreatePage() {
                     />
                     <span>，{t("within")}</span>
                     <Input
-                      className={cn(fill, "w-12")}
+                      className={cn(
+                        fill,
+                        "w-14 text-center tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+                      )}
                       type="number"
                       min={1}
                       max={365}
@@ -259,7 +284,11 @@ export function CreatePage() {
                 </button>
               </div>
               <div className="ml-auto flex items-center gap-2">
-                <details className="group relative" data-testid="mode-picker">
+                <details
+                  ref={modePickerRef}
+                  className="group relative"
+                  data-testid="mode-picker"
+                >
                   <summary
                     aria-label={t("mode")}
                     className="flex h-8 cursor-pointer list-none items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-gray-600 transition-colors hover:bg-surface [&::-webkit-details-marker]:hidden"

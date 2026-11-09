@@ -80,11 +80,25 @@ export function ModalHost() {
           <label className="mb-2 block text-sm" htmlFor="share-link">
             {t("interviewLink")}
           </label>
-          <Input
-            id="share-link"
-            value="https://test.mizzen.top/interview/diary-demo"
-            readOnly
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              id="share-link"
+              className="flex-1"
+              value="https://test.mizzen.top/interview/diary-demo"
+              readOnly
+            />
+            <Button
+              variant="outline"
+              onClick={() => {
+                navigator.clipboard
+                  ?.writeText("https://test.mizzen.top/interview/diary-demo")
+                  .catch(() => undefined);
+                notify("linkCopied");
+              }}
+            >
+              {t("copyLink")}
+            </Button>
+          </div>
           <p className={"mt-4 " + notice}>{t("sampleLink")}</p>
           {footer(t("viewRecords"), () => {
             close();
@@ -158,6 +172,10 @@ export function ModalHost() {
           </label>
           <Textarea id="column-prompt" rows={3} />
           <p className={"mt-4 " + notice}>{t("columnHint")}</p>
+          {footer(t("confirm"), () => {
+            close();
+            notify("columnSaved");
+          })}
         </>
       )}
       {modal.kind === "notes" && (
@@ -212,11 +230,12 @@ export function ModalHost() {
               >
                 <h4 className="mb-2 text-sm font-medium">
                   {answer.questionId} ·{" "}
-                  {
+                  {(
+                    study.questions.find((q) => q.id === answer.questionId) ??
                     initialStudy.questions.find(
                       (q) => q.id === answer.questionId,
-                    )?.title
-                  }
+                    )
+                  )?.title ?? ""}
                 </h4>
                 <p className="text-sm leading-7 text-muted-foreground">
                   {answer.text}
@@ -225,18 +244,24 @@ export function ModalHost() {
             ))}
           <p className={"mt-3 " + muted}>{t("demoTranscript")}</p>
           <h3 className="mt-6 mb-2 font-semibold">{t("sameParticipant")}</h3>
-          {records
-            .filter((r) => r.participantId === record.participantId)
-            .map((r) => (
-              <div key={r.id} className="border-b border-border py-3">
+          <div className="flex flex-wrap gap-2">
+            {records
+              .filter((r) => r.participantId === record.participantId)
+              .map((r) => (
                 <button
-                  className="text-sm text-primary hover:underline"
+                  key={r.id}
+                  className={
+                    "rounded-lg border px-3 py-2 text-left text-xs transition-colors " +
+                    (r.id === record.id
+                      ? "border-indigo-300 bg-indigo-50/70 font-medium text-primary"
+                      : "border-border bg-card text-gray-600 hover:bg-surface")
+                  }
                   onClick={() => open({ kind: "record", id: r.id })}
                 >
                   {t("order", { n: r.order })} · {r.id} · {r.startedAt}
                 </button>
-              </div>
-            ))}
+              ))}
+          </div>
         </>
       )}
     </Dialog>

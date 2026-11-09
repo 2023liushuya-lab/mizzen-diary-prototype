@@ -41,7 +41,7 @@ export function NativeOutline() {
             onChange={(e) => updateTitle(e.target.value)}
           />
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            {t("externalTitle")}：{t("externalName")}
+            {t("externalTitle")}：{study.externalTitle ?? t("externalName")}
           </p>
           <div className="flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-gray-100 px-2.5 py-1 text-xs text-gray-600">
@@ -132,7 +132,17 @@ export function NativeOutline() {
                       }
                     />
                   </div>
-                  <p className="mt-3 pl-9 text-sm leading-6">{q.prompt}</p>
+                  <div className="mt-2 pl-9">
+                    <Input
+                      className="h-auto border-0 bg-transparent px-0 py-1 text-sm leading-6 text-gray-700 focus:ring-0 dark:text-gray-200"
+                      aria-label={q.id + " prompt"}
+                      placeholder={t("questionPromptPlaceholder")}
+                      value={q.prompt}
+                      onChange={(e) =>
+                        updateQuestion(q.id, { prompt: e.target.value })
+                      }
+                    />
+                  </div>
                   <p className="mt-3 pl-9 text-sm leading-6 text-gray-600 dark:text-gray-300">
                     <strong>{t("followUp")}：</strong>
                     {t("nativeGuideHint")}

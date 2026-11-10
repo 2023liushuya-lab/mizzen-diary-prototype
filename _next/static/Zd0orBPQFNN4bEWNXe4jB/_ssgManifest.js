@@ -1,0 +1,1 @@
+self.__SSG_MANIFEST=new Set(["\u002Fstudy\u002Frecords\u002F[participantId]"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()

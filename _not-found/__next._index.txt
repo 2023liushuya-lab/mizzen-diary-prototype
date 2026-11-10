@@ -1,0 +1,6 @@
+1:"$Sreact.fragment"
+2:I[1132,["545","static/chunks/545-b178ca2250454155.js","254","static/chunks/254-0b180c9527a753d6.js","809","static/chunks/809-2fc800a66dce9b30.js","177","static/chunks/app/layout-2869b0f60626c972.js"],"Providers"]
+3:I[9046,[],""]
+4:I[1868,[],""]
+:HL["/mizzen-diary-prototype/_next/static/css/14b76442df7eb956.css","style"]
+0:{"rsc":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/mizzen-diary-prototype/_next/static/css/14b76442df7eb956.css","precedence":"next"}]],["$","html",null,{"lang":"zh-CN","suppressHydrationWarning":true,"children":["$","body",null,{"children":["$","$L2",null,{"children":["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}]}]}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"Zd0orBPQFNN4bEWNXe4jB"}

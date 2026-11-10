@@ -299,7 +299,12 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
           </div>
         </div>
       </div>
-      <div className="mx-auto max-w-[440px] bg-card sm:my-7 sm:min-h-[700px] sm:rounded-2xl sm:border sm:border-border">
+      <div
+        className={cn(
+          "mx-auto max-w-[440px] bg-card sm:my-7 sm:rounded-2xl sm:border sm:border-border",
+          screen === "join" ? "sm:min-h-[400px]" : "sm:min-h-[700px]",
+        )}
+      >
         <header className="flex h-16 items-center justify-between border-b border-border px-5">
           <div className="flex items-center gap-2.5">
             {screen !== "home" && (
@@ -314,9 +319,11 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
             <Brand />
             <span className="text-base font-semibold">Mizzen</span>
           </div>
-          <span className="text-xs text-muted-foreground">
-            {say("我的研究", "My studies")}
-          </span>
+          {screen !== "join" && (
+            <span className="text-xs text-muted-foreground">
+              {say("我的研究", "My studies")}
+            </span>
+          )}
         </header>
         {!ready ? (
           <p className="p-6 text-sm text-muted-foreground">
@@ -339,37 +346,19 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
             </Button>
           </section>
         ) : screen === "join" ? (
-          <section className="p-6">
-            <span className="rounded-md bg-indigo-50 px-2 py-1 text-xs text-primary dark:bg-indigo-950">
-              {say("日记法研究邀请", "Diary study invitation")}
-            </span>
-            <h1 className="mt-5 text-xl font-semibold leading-8">{title}</h1>
-            <p className="mt-4 text-sm leading-7 text-muted-foreground">
-              {say(
-                "记录每一次真实的使用体验。始终通过同一个链接或 App 研究卡片进入，系统会判断当前能否参与。",
-                "Record each real experience. Return through the same link or app card; eligibility is checked each time.",
-              )}
+          <section className="px-6 pt-8 pb-6" data-testid="simple-invitation">
+            <p className="text-xs font-medium text-primary">
+              {say("日记法研究", "Diary study")}
             </p>
-            <div className="my-6 divide-y divide-border rounded-xl border border-border px-4 text-sm">
-              <p className="py-3">
-                {config.start} — {config.end}
-              </p>
-              <p className="py-3">{limitSummary}</p>
-              <p className="py-3 text-xs text-muted-foreground">
-                {say(
-                  "这是参与上限，不要求每天答满。单日按北京时间 00:00—24:00 计算。",
-                  "These are caps, not daily targets. A day runs 00:00–24:00 in Asia/Shanghai.",
-                )}
-              </p>
-            </div>
-            <p className="mb-6 text-xs leading-6 text-muted-foreground">
+            <h1 className="mt-3 text-xl font-semibold leading-8">{title}</h1>
+            <p className="mt-3 text-sm leading-7 text-muted-foreground">
               {say(
-                "确认参与后，研究会保存在 App 的“我的研究”。示例账号 P001。",
-                "Joining adds this study to My studies. Demo account P001.",
+                "聊聊你最近的使用体验。",
+                "Tell us about your recent experience.",
               )}
             </p>
             <Button
-              className="w-full"
+              className="mt-7 w-full"
               onClick={() => {
                 state.join();
                 router.push("/participant/study");
@@ -377,14 +366,35 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
             >
               {state.joined
                 ? say("进入研究", "Open study")
-                : say("确认参与", "Join study")}
+                : say("开始参与", "Join study")}
             </Button>
-            <p className="mt-3 text-center text-xs text-placeholder">
-              {say(
-                "仅查看链接不会计入参与次数",
-                "Opening the link does not count as a session",
-              )}
-            </p>
+            <details
+              className="group mt-5 border-t border-border pt-4"
+              data-testid="participation-details"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between text-xs text-muted-foreground [&::-webkit-details-marker]:hidden">
+                {say("参与说明", "Participation details")}
+                <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" />
+              </summary>
+              <div className="mt-3 space-y-2 text-xs leading-6 text-muted-foreground">
+                <p>
+                  {config.start} — {config.end}
+                </p>
+                <p>{limitSummary}</p>
+                <p>
+                  {say(
+                    "次数是参与上限，不要求每天答满；按北京时间自然日计算。",
+                    "These are caps, not daily targets. Days follow Asia/Shanghai time.",
+                  )}
+                </p>
+                <p>
+                  {say(
+                    "参与后可在 App“我的研究”中继续。",
+                    "Continue later from My studies in the app.",
+                  )}
+                </p>
+              </div>
+            </details>
           </section>
         ) : !state.joined ? (
           <section className="px-6 py-12">
@@ -856,12 +866,14 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
             )}
           </section>
         )}
-        <div className="px-5 py-5 text-center text-[10px] leading-5 text-placeholder">
-          {say(
-            "交互原型 · 示例账号 · 追问为规则演示",
-            "Prototype · demo account · rule-based follow-ups",
-          )}
-        </div>
+        {screen !== "join" && (
+          <div className="px-5 py-5 text-center text-[10px] leading-5 text-placeholder">
+            {say(
+              "交互原型 · 示例账号 · 追问为规则演示",
+              "Prototype · demo account · rule-based follow-ups",
+            )}
+          </div>
+        )}
       </div>
       <div className="mx-auto max-w-[440px] px-5 pb-6 text-xs leading-6 text-muted-foreground">
         <p>

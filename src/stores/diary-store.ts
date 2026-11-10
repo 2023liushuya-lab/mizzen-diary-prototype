@@ -26,6 +26,7 @@ interface DiaryState {
   updateBrief: (patch: Partial<Brief>) => void;
   createStudy: () => boolean;
   updateTitle: (title: string) => void;
+  updateParticipantDescription: (description: string) => void;
   updateExternalTitle: (externalTitle: string) => void;
   updateConfig: (patch: Partial<DiaryConfig>) => void;
   updateQuestion: (id: string, patch: Partial<Question>) => void;
@@ -95,6 +96,10 @@ export const useDiaryStore = create<DiaryState>()(
       },
       updateTitle: (title) =>
         set((s) => ({ study: { ...s.study, title, dirty: true } })),
+      updateParticipantDescription: (participantDescription) =>
+        set((s) => ({
+          study: { ...s.study, participantDescription, dirty: true },
+        })),
       updateExternalTitle: (externalTitle) =>
         set((s) => ({ study: { ...s.study, externalTitle, dirty: true } })),
       updateConfig: (patch) =>

@@ -1,4 +1,10 @@
 export const zh = {
+  participantDescription: "受访者说明",
+  optionalField: "选填",
+  participantDescriptionPlaceholder: "介绍研究内容、参与方式或注意事项",
+  participantDescriptionHint:
+    "显示在受访者邀请页的研究名称下方；留空则不显示。",
+  researchName: "研究名称",
   entryRuleHint: "同一入口反复参与，按次数上限与间隔判断是否可答",
   participantPreview: "预览受访者端",
   makeupHint: "当日漏答，可在次日 24 小时内补答。",
@@ -352,6 +358,13 @@ export const zh = {
 export type Key = keyof typeof zh;
 export const en: Record<Key, string> = {
   ...zh,
+  participantDescription: "Participant description",
+  optionalField: "Optional",
+  participantDescriptionPlaceholder:
+    "Describe the study, participation instructions or important details",
+  participantDescriptionHint:
+    "Shown below the study title on the invitation page. Hidden when blank.",
+  researchName: "Study name",
   entryRuleHint:
     "One entry; eligibility follows session caps and interval settings",
   participantPreview: "Participant preview",

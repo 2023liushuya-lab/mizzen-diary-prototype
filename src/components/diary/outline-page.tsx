@@ -3,7 +3,7 @@ import { useState } from "react";
 import { NativeOutline } from "./native-outline";
 import { Check, MessageSquare, PenTool, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, Textarea } from "@/components/ui/input";
 import { useTranslation } from "@/hooks/use-translation";
 import { useDiaryStore } from "@/stores/diary-store";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,9 @@ export function OutlinePage() {
   const t = useTranslation();
   const study = useDiaryStore((s) => s.study);
   const save = useDiaryStore((s) => s.save);
+  const updateParticipantDescription = useDiaryStore(
+    (s) => s.updateParticipantDescription,
+  );
   const [panel, setPanel] = useState<"chat" | "settings" | "outline">(
     "settings",
   );
@@ -133,6 +136,37 @@ export function OutlinePage() {
             </div>
           ) : (
             <div className="space-y-5">
+              <section
+                className="space-y-3"
+                aria-label={t("participantDescription")}
+              >
+                <h3 className="text-base font-medium">{study.title}</h3>
+                <div>
+                  <label
+                    htmlFor="participant-description"
+                    className="text-sm font-medium"
+                  >
+                    {t("participantDescription")}
+                    <span className="ml-2 text-xs font-normal text-placeholder">
+                      {t("optionalField")}
+                    </span>
+                  </label>
+                  <Textarea
+                    id="participant-description"
+                    aria-label={t("participantDescription")}
+                    className="mt-2 resize-y"
+                    rows={3}
+                    placeholder={t("participantDescriptionPlaceholder")}
+                    value={study.participantDescription ?? ""}
+                    onChange={(e) =>
+                      updateParticipantDescription(e.target.value)
+                    }
+                  />
+                  <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                    {t("participantDescriptionHint")}
+                  </p>
+                </div>
+              </section>
               <DiaryConfigPanel />
               <div className="flex justify-end">
                 <Button variant="outline" onClick={() => save()}>

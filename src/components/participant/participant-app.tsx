@@ -351,12 +351,14 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
               {say("日记法研究", "Diary study")}
             </p>
             <h1 className="mt-3 text-xl font-semibold leading-8">{title}</h1>
-            <p className="mt-3 text-sm leading-7 text-muted-foreground">
-              {say(
-                "聊聊你最近的使用体验。",
-                "Tell us about your recent experience.",
-              )}
-            </p>
+            {study.participantDescription?.trim() && (
+              <p
+                data-testid="invitation-description"
+                className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-muted-foreground"
+              >
+                {study.participantDescription}
+              </p>
+            )}
             <Button
               className="mt-7 w-full"
               onClick={() => {

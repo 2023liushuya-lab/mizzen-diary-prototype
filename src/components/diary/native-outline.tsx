@@ -36,13 +36,15 @@ export function NativeOutline() {
         <div className="space-y-3">
           <Input
             className="h-auto border-0 bg-transparent p-0 text-[22px] font-semibold leading-8 focus:ring-0"
-            aria-label={t("researchGoal") + " " + t("diaryStudy")}
+            aria-label={t("researchName")}
             value={study.title}
             onChange={(e) => updateTitle(e.target.value)}
           />
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            {t("externalTitle")}：{study.externalTitle ?? t("externalName")}
-          </p>
+          {study.participantDescription?.trim() && (
+            <p className="whitespace-pre-wrap break-words text-sm leading-7 text-muted-foreground">
+              {study.participantDescription}
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-gray-100 px-2.5 py-1 text-xs text-gray-600">
               <Clock className="size-3" />

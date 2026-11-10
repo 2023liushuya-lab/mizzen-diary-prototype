@@ -56,6 +56,7 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
     .filter((t) => t.status === "submitted")
     .toReversed();
   const enter = () => {
+    if (!state.joined) state.join();
     if (state.begin()) router.push("/participant/interview");
   };
   const view = (t: ParticipantTask) => {
@@ -63,7 +64,7 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
     router.push("/participant/interview");
   };
   const title = study.title;
-  const ended = decision.reason === "ended" || decision.reason === "total";
+  const landing = screen === "join" || screen === "study";
   const entryTitle = {
     allowed: decision.completed
       ? say("可以开始新一次访谈", "Ready for another session")
@@ -126,60 +127,93 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
   );
   const entryCard = (
     <section
-      className="rounded-xl border border-border p-4"
+      className={screen === "home" ? "rounded-xl border border-border p-4" : ""}
       data-testid="participant-study-card"
       data-decision={decision.reason}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-primary">
-          {say("日记法研究", "Diary study")}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          {ended ? say("已结束", "Closed") : say("进行中", "Active")}
-        </span>
-      </div>
-      <h2 className="mt-3 text-base font-semibold leading-7">{title}</h2>
-      <p className="mt-2 text-xs leading-6 text-muted-foreground">
-        {config.start} — {config.end}
-        <br />
-        {limitSummary}
+      <p className="text-xs font-medium text-primary">
+        {say("日记法研究", "Diary study")}
       </p>
-      <p className="mt-2 text-xs text-muted-foreground">
-        {say(
-          `累计完成 ${decision.completed} 次`,
-          `${decision.completed} sessions completed`,
-        )}
-      </p>
-      <div className="mt-4 border-t border-border pt-4" aria-live="polite">
-        <h3 className="text-sm font-medium">{entryTitle}</h3>
-        <p className="mt-2 text-xs leading-6 text-muted-foreground">
-          {entryHint}
-        </p>
-        <Button
-          className="mt-4 w-full"
-          disabled={!decision.allowed}
-          onClick={enter}
+      <h2 className="mt-3 text-xl font-semibold leading-8">{title}</h2>
+      {study.participantDescription?.trim() && (
+        <p
+          data-testid="invitation-description"
+          className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-muted-foreground"
         >
-          {decision.allowed
-            ? primary
-            : decision.reason === "interval"
-              ? say("等待下一次开放", "Waiting")
-              : decision.reason === "notstarted"
-                ? say("尚未开放", "Not open yet")
-                : say("暂不可参与", "Unavailable")}
-          <ArrowRight />
-        </Button>
+          {study.participantDescription}
+        </p>
+      )}
+      <div className="mt-7" aria-live="polite">
+        {!decision.allowed && (
+          <div className="flex items-center gap-2">
+            <Clock3 className="size-4 shrink-0 text-muted-foreground" />
+            <h3 className="text-sm font-medium">{entryTitle}</h3>
+          </div>
+        )}
+        {(!decision.allowed ||
+          decision.reason === "resume" ||
+          decision.completed > 0) && (
+          <p
+            className={cn(
+              "text-xs leading-6 text-muted-foreground",
+              !decision.allowed && "mt-2",
+            )}
+          >
+            {entryHint}
+          </p>
+        )}
+        {decision.allowed && (
+          <Button
+            className={cn(
+              "w-full",
+              (decision.reason === "resume" || decision.completed > 0) &&
+                "mt-3",
+            )}
+            onClick={enter}
+          >
+            {primary}
+            <ArrowRight />
+          </Button>
+        )}
       </div>
-      <Link
-        href="/participant/history"
-        className="mt-4 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground hover:text-primary"
-      >
-        {say("参与记录", "Participation history")}
-        <span className="flex items-center gap-1">
-          {history.length}
-          <ChevronRight className="size-4" />
-        </span>
-      </Link>
+      <div className="mt-5 border-t border-border">
+        {history.length > 0 && (
+          <Link
+            href="/participant/history"
+            className="flex items-center justify-between py-4 text-xs text-muted-foreground hover:text-primary"
+          >
+            {say("参与记录", "Participation history")}
+            <span className="flex items-center gap-1">
+              {history.length}
+              <ChevronRight className="size-3.5" />
+            </span>
+          </Link>
+        )}
+        <details
+          className={cn(
+            "group py-4",
+            history.length > 0 && "border-t border-border",
+          )}
+          data-testid="participation-details"
+        >
+          <summary className="flex cursor-pointer list-none items-center justify-between text-xs text-muted-foreground [&::-webkit-details-marker]:hidden">
+            {say("参与说明", "Participation details")}
+            <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" />
+          </summary>
+          <div className="mt-3 space-y-2 text-xs leading-6 text-muted-foreground">
+            <p>
+              {config.start} — {config.end}
+            </p>
+            <p>{limitSummary}</p>
+            <p>
+              {say(
+                "次数是参与上限，不要求每天答满；按北京时间自然日计算。",
+                "These are caps, not daily targets. Days follow Asia/Shanghai time.",
+              )}
+            </p>
+          </div>
+        </details>
+      </div>
     </section>
   );
   const samples = [
@@ -302,16 +336,22 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
       <div
         className={cn(
           "mx-auto max-w-[440px] bg-card sm:my-7 sm:rounded-2xl sm:border sm:border-border",
-          screen === "join" ? "sm:min-h-[400px]" : "sm:min-h-[700px]",
+          landing ? "sm:min-h-[400px]" : "sm:min-h-[700px]",
         )}
       >
         <header className="flex h-16 items-center justify-between border-b border-border px-5">
           <div className="flex items-center gap-2.5">
-            {screen !== "home" && (
+            {screen !== "home" && !landing && (
               <button
                 aria-label={say("返回", "Back")}
                 className="rounded-md p-1 text-muted-foreground hover:bg-surface"
-                onClick={() => router.push("/participant")}
+                onClick={() =>
+                  router.push(
+                    screen === "interview" || screen === "history"
+                      ? "/participant/study"
+                      : "/participant",
+                  )
+                }
               >
                 <ArrowLeft className="size-5" />
               </button>
@@ -319,7 +359,7 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
             <Brand />
             <span className="text-base font-semibold">Mizzen</span>
           </div>
-          {screen !== "join" && (
+          {!landing && (
             <span className="text-xs text-muted-foreground">
               {say("我的研究", "My studies")}
             </span>
@@ -345,60 +385,7 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
               {say("恢复示例账号", "Restore demo account")}
             </Button>
           </section>
-        ) : screen === "join" ? (
-          <section className="px-6 pt-8 pb-6" data-testid="simple-invitation">
-            <p className="text-xs font-medium text-primary">
-              {say("日记法研究", "Diary study")}
-            </p>
-            <h1 className="mt-3 text-xl font-semibold leading-8">{title}</h1>
-            {study.participantDescription?.trim() && (
-              <p
-                data-testid="invitation-description"
-                className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-muted-foreground"
-              >
-                {study.participantDescription}
-              </p>
-            )}
-            <Button
-              className="mt-7 w-full"
-              onClick={() => {
-                state.join();
-                router.push("/participant/study");
-              }}
-            >
-              {state.joined
-                ? say("进入研究", "Open study")
-                : say("开始参与", "Join study")}
-            </Button>
-            <details
-              className="group mt-5 border-t border-border pt-4"
-              data-testid="participation-details"
-            >
-              <summary className="flex cursor-pointer list-none items-center justify-between text-xs text-muted-foreground [&::-webkit-details-marker]:hidden">
-                {say("参与说明", "Participation details")}
-                <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" />
-              </summary>
-              <div className="mt-3 space-y-2 text-xs leading-6 text-muted-foreground">
-                <p>
-                  {config.start} — {config.end}
-                </p>
-                <p>{limitSummary}</p>
-                <p>
-                  {say(
-                    "次数是参与上限，不要求每天答满；按北京时间自然日计算。",
-                    "These are caps, not daily targets. Days follow Asia/Shanghai time.",
-                  )}
-                </p>
-                <p>
-                  {say(
-                    "参与后可在 App“我的研究”中继续。",
-                    "Continue later from My studies in the app.",
-                  )}
-                </p>
-              </div>
-            </details>
-          </section>
-        ) : !state.joined ? (
+        ) : !state.joined && screen === "home" ? (
           <section className="px-6 py-12">
             <BookOpen className="mb-5 size-8 text-muted-foreground" />
             <h1 className="text-xl font-semibold">
@@ -457,19 +444,13 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
             )}
           </section>
         ) : screen !== "interview" || task.day === 0 ? (
-          <section className="space-y-5 p-5">
-            <h1 className="text-xl font-semibold">
-              {screen === "home"
-                ? say("我的研究", "My studies")
-                : say("参与研究", "Participate")}
-            </h1>
+          <section className="px-6 pt-8 pb-6" data-testid="single-entry-page">
+            {screen === "home" && (
+              <h1 className="mb-5 text-xl font-semibold">
+                {say("我的研究", "My studies")}
+              </h1>
+            )}
             {entryCard}
-            <p className="text-xs leading-6 text-muted-foreground">
-              {say(
-                "有未完成访谈时优先续答；提交后才计入每日与累计次数。次数未用完不算漏答。",
-                "Unfinished interviews resume first. Completed submissions count toward daily and total caps; unused capacity is not a missed task.",
-              )}
-            </p>
           </section>
         ) : (
           <section className="p-5">
@@ -868,7 +849,7 @@ export function ParticipantApp({ screen }: { screen: Screen }) {
             )}
           </section>
         )}
-        {screen !== "join" && (
+        {!landing && (
           <div className="px-5 py-5 text-center text-[10px] leading-5 text-placeholder">
             {say(
               "交互原型 · 示例账号 · 追问为规则演示",
